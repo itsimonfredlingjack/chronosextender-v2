@@ -1,0 +1,33 @@
+{
+  "name": "chronosextender",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on tcp:5173 && electron .",
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@vitejs/plugin-react": "^5.0.0",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.5",
+    "concurrently": "^9.2.1",
+    "electron": "^33.3.1",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.7.3",
+    "vite": "^7.1.5",
+    "vitest": "^2.1.8",
+    "wait-on": "^8.0.3"
+  }
+}
