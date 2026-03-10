@@ -1,5 +1,6 @@
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
-contextBridge.exposeInMainWorld("chronosDesktop", {
-  platform: process.platform,
+contextBridge.exposeInMainWorld("chronos", {
+  getRuntimeInfo: () => ipcRenderer.invoke("chronos:getRuntimeInfo"),
+  explainSession: (input) => ipcRenderer.invoke("assistant:explainSession", input),
 });

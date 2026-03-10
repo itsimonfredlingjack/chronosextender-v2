@@ -1,5 +1,5 @@
-import ChronosDashboard from "./ChronosDashboard";
+import TimeReportingWorkspace from "./components/TimeReportingWorkspace";
 
 export default function App() {
-  return <ChronosDashboard />;
+  return <TimeReportingWorkspace />;
 }
