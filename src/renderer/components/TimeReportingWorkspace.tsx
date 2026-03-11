@@ -667,7 +667,17 @@ export default function TimeReportingWorkspace({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">Select a session slot to inspect context.</div>
+                  <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-soft)] bg-white/40 ring-1 ring-white/60 p-6 text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.7)]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5 ring-1 ring-black/10 shadow-[inset_0_1px_1px_rgba(255,255,255,1)] mb-4">
+                      <svg className="h-5 w-5 text-[var(--accent-slate-500)] opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">No session selected</h3>
+                    <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                      Select a session from the matrix to view detailed tracking insights, AI rationale, and application switching events.
+                    </p>
+                  </div>
                 )}
               </aside>
             </div>
