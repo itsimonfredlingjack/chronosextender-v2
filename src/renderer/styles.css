@@ -113,15 +113,22 @@ body {
 
 /* ── Custom Scrollbar for Glass UI ── */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 14px; /* Slightly wider track to allow for borders to create the 'floating' effect */
+  height: 14px;
 }
 ::-webkit-scrollbar-track {
   background: transparent; 
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1); 
+  background: rgba(110, 124, 140, 0.25); 
   border-radius: 10px;
+  border: 4px solid rgba(0, 0, 0, 0); /* Transparent border creates padding around the thumb */
+  background-clip: padding-box; /* Ensures the background color doesn't bleed into the transparent border */
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2); 
+  background: rgba(110, 124, 140, 0.4); 
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

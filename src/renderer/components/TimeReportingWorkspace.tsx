@@ -464,14 +464,14 @@ export default function TimeReportingWorkspace({
             <div className="grid w-[min(940px,100%)] grid-cols-4 gap-3 border-l border-white/40 pl-5">
               <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Coverage</p>
-                <p className="mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--text-primary)]" data-testid="status-coverage">
+                <p className="mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--text-primary)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" style={{ letterSpacing: "-0.04em" }} data-testid="status-coverage">
                   {Math.round(state.metrics.coverage * 100)}%
                 </p>
               </div>
 
               <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Needs Attention</p>
-                <p className={`mt-2 font-display text-3xl font-medium tracking-tight tabular-nums ${state.metrics.unresolvedCount > 0 ? "text-[#CBAFA4]" : "text-[var(--text-primary)]"}`} data-testid="status-unresolved">
+                <p className={`mt-2 font-display text-3xl font-medium tracking-tight tabular-nums drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${state.metrics.unresolvedCount > 0 ? "text-[#CBAFA4]" : "text-[var(--text-primary)]"}`} style={{ letterSpacing: "-0.04em" }} data-testid="status-unresolved">
                   {state.metrics.unresolvedCount}
                 </p>
               </div>
@@ -483,9 +483,9 @@ export default function TimeReportingWorkspace({
                 <div className="relative z-10 flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Tracked vs Target</p>
                 </div>
-                <p className="relative z-10 mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--accent-slate-700)]">
+                <p className="relative z-10 mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--accent-slate-700)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" style={{ letterSpacing: "-0.04em" }}>
                   {formatHours(state.metrics.trackedHours)}
-                  <span className="mx-1.5 text-xl font-normal text-[var(--text-muted)]/50">/</span>
+                  <span className="mx-1.5 text-xl font-normal text-[var(--text-muted)]/50" style={{ letterSpacing: "normal" }}>/</span>
                   <span className="text-xl font-normal text-[var(--text-muted)]">{formatHours(state.metrics.targetHours)}</span>
                 </p>
               </div>
