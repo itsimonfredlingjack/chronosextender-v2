@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { seedActivityEvents } from "../lib/fixtures";
 import { getChronosRuntimeBridge, type ChronosRuntimeBridge } from "../lib/runtime";
@@ -6,6 +7,20 @@ import { interactiveStateClasses } from "../lib/theme-tokens";
 import type { ActivityEvent, AiExplanation, ReviewIssue, WorkSession, WorkspacePage } from "../lib/types";
 import { buildMatrixSlots, buildReviewSummary, paginateSessionsIntoWorkspacePages } from "../lib/workspace-view";
 import { applyResolution, createWorkspaceState } from "../lib/workspace";
+import { PulseOrb, type AiState } from "./ai-pulse";
+import { ConfidenceTimeline } from "./confidence-timeline";
+import { AskChronosBar } from "./ask-chronos-bar";
+import { DailySyncModal } from "./daily-sync-modal";
+import { Typewriter } from "./typewriter";
+import { AiNudgeToast } from "./ai-nudge-toast";
+
+function injectMockConfidence(sessions: WorkSession[]): WorkSession[] {
+  return sessions.map((s, i) => {
+    if (i === 1) return { ...s, confidence: 45, alternativeProjects: ["Figma Redesign", "Slack Comm", "Internal Meeting"] };
+    if (i === 3) return { ...s, confidence: 72, alternativeProjects: ["Client Call", "Review PRs"] };
+    return s;
+  });
+}
 
 interface TimeReportingWorkspaceProps {
   events?: ActivityEvent[];
@@ -95,10 +110,91 @@ export default function TimeReportingWorkspace({
   targetHours = 38,
 }: TimeReportingWorkspaceProps) {
   const bridge = useMemo(() => runtime ?? getChronosRuntimeBridge(), [runtime]);
-  const [state, dispatch] = useReducer(
+  const [baseState, dispatch] = useReducer(
     applyResolution,
     createWorkspaceState(events, { targetHours, gapMinutes: 32 }),
   );
+
+  const [nlQuery, setNlQuery] = useState("");
+  const [nlSummary, setNlSummary] = useState<string | null>(null);
+  const [isAiFiltering, setIsAiFiltering] = useState(false);
+  const [isDailySyncOpen, setIsDailySyncOpen] = useState(false);
+
+  const state = useMemo(() => {
+    // 1. Mock confidence injection
+    const sessionsWithConfidence = injectMockConfidence(baseState.sessions);
+    
+    // 2. Natural Language Filtering (Mock Logic)
+    let filteredSessions = sessionsWithConfidence;
+    if (nlQuery.trim().length > 0) {
+      const q = nlQuery.toLowerCase();
+      filteredSessions = sessionsWithConfidence.filter(s => {
+        // A simple text match against project or summary to simulate AI understanding
+        return (s.project?.toLowerCase().includes(q)) || (s.summary.toLowerCase().includes(q));
+      });
+    }
+
+    // Rebuild a new pseudo-state based on the filtered sessions
+    const pseudoState = createWorkspaceState(events, { targetHours, gapMinutes: 32 });
+    
+    // We overwrite the sessions and recompute metrics so the header stats reflect the slice
+    const trackedStats = filteredSessions.reduce((acc, s) => {
+      acc.tracked += s.durationMinutes / 60;
+      if (s.reviewState === "resolved") acc.resolved++;
+      else acc.unresolved++;
+      return acc;
+    }, { tracked: 0, resolved: 0, unresolved: 0 });
+
+    const updatedMetrics = {
+      ...pseudoState.metrics,
+      trackedHours: trackedStats.tracked,
+      unresolvedCount: trackedStats.unresolved,
+      submitReady: trackedStats.unresolved === 0 && filteredSessions.length > 0,
+      coverage: trackedStats.tracked / targetHours, // simplified coverage
+    };
+
+    return {
+      ...baseState,
+      sessions: filteredSessions,
+      metrics: nlQuery ? updatedMetrics : baseState.metrics,
+      // We also need to re-derive the review queue for only these sessions
+      reviewQueue: baseState.reviewQueue.filter(issue => filteredSessions.some(s => s.id === issue.sessionId))
+    };
+  }, [baseState, events, targetHours, nlQuery]);
+
+  // Simulate LLM delay for summary generation
+  useEffect(() => {
+    if (!nlQuery.trim()) {
+      setNlSummary(null);
+      setIsAiFiltering(false);
+      return;
+    }
+
+    setIsAiFiltering(true);
+    setNlSummary(null);
+    
+    const delay = setTimeout(() => {
+      const h = state.metrics.trackedHours.toFixed(1);
+      const proj = state.sessions[0]?.project ?? "the selected project";
+      setNlSummary(`You logged ${h} hours for this context. I have filtered your timeline and review queue to show only relevant sessions.`);
+      setIsAiFiltering(false);
+    }, 800);
+
+    return () => clearTimeout(delay);
+  }, [nlQuery, state.metrics.trackedHours, state.sessions]);
+
+  // Simulation: Proactive Friction Nudge
+  const [showAiNudge, setShowAiNudge] = useState(false);
+  useEffect(() => {
+    // Show the nudge 5 seconds after the component mounts to simulate anomaly detection
+    const timer = setTimeout(() => setShowAiNudge(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleNudgeAction = (action: "split" | "pause") => {
+    console.log("Nudge action taken:", action);
+    setShowAiNudge(false);
+  };
 
   const [runtimeLabel, setRuntimeLabel] = useState("Loading runtime");
   const [runtimePlatform, setRuntimePlatform] = useState(detectRuntimePlatform);
@@ -107,6 +203,17 @@ export default function TimeReportingWorkspace({
   const [aiLoadingSessionId, setAiLoadingSessionId] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string>("");
   const [aiBySession, setAiBySession] = useState<Record<string, AiExplanation>>({});
+  const [aiSuccessFlash, setAiSuccessFlash] = useState(false);
+
+  // Derive orb state from active actions
+  let orbState: AiState = "idle";
+  if (aiLoadingSessionId) {
+    orbState = "processing";
+  } else if (aiError) {
+    orbState = "error";
+  } else if (aiSuccessFlash) {
+    orbState = "success";
+  }
 
   const pages = useMemo(() => paginateSessionsIntoWorkspacePages(state.sessions, MATRIX_PAGE_SIZE), [state.sessions]);
 
@@ -263,6 +370,14 @@ export default function TimeReportingWorkspace({
     dispatch({ type: "select_issue", issueId: linkedIssue?.id ?? null });
   };
 
+  const handleAssignProject = (sessionId: string, project: string) => {
+    dispatch({
+      type: "update_session",
+      sessionId,
+      patch: { project, confidence: 100 },
+    });
+  };
+
   const requestExplanation = async () => {
     if (!drawerSession) {
       return;
@@ -282,6 +397,9 @@ export default function TimeReportingWorkspace({
         ...previous,
         [drawerSession.id]: explanation,
       }));
+      
+      setAiSuccessFlash(true);
+      setTimeout(() => setAiSuccessFlash(false), 2000);
     } catch {
       setAiError("AI explanation is unavailable right now. You can still complete the review manually.");
     } finally {
@@ -313,62 +431,98 @@ export default function TimeReportingWorkspace({
     runtimePlatform === "darwin" ? "px-4 pb-4 pt-[52px]" : "p-4";
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)] antialiased">
+    <div className="relative h-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-primary)] antialiased transition-colors duration-500">
+      
+      {/* Ask Chronos Bar - Floating Layer */}
+      <div className="absolute inset-x-0 top-8 z-50 px-12 pointer-events-none">
+        <div className="pointer-events-auto">
+          <AskChronosBar 
+            onQueryChange={setNlQuery} 
+            isProcessing={isAiFiltering} 
+            nlSummary={nlSummary} 
+          />
+        </div>
+      </div>
+
       {runtimePlatform === "darwin" ? (
-        <div className="titlebar-drag-region absolute inset-x-0 top-0 h-11" aria-hidden="true" />
+        <div className="titlebar-drag-region absolute inset-x-0 top-0 h-11 z-[60]" aria-hidden="true" />
       ) : null}
-      <div className={`mx-auto flex h-full max-w-[1680px] flex-col gap-3 ${shellPaddingClass}`}>
-        <header className="h-[76px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-shell)] px-4 shadow-[0_1px_2px_rgba(82,75,64,0.05)]">
+      
+      {/* Main app content with dimming when a query is active */}
+      <div className={`mx-auto flex h-full max-w-[1680px] flex-col gap-4 transition-all duration-500 ${shellPaddingClass} ${nlQuery ? "opacity-95 contrast-125 saturate-50" : ""}`}>
+        <header className="relative overflow-hidden h-[88px] rounded-3xl bg-[var(--bg-shell)]/50 backdrop-blur-3xl ring-1 ring-white/60 px-6 shadow-[0_8px_32px_rgba(82,75,64,0.06)] mt-20">
           <div className="flex h-full items-center justify-between gap-4">
-            <div className="min-w-0 pr-4">
-              <p className="font-display text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Chronos Review Surface</p>
-              <p className="mt-1 truncate text-[13px] text-[var(--text-secondary)]">{runtimeLabel}</p>
+            <div className="min-w-0 pr-4 flex items-center gap-4">
+              <PulseOrb state={orbState} />
+              <div>
+                <p className="font-display text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Chronos Local AI</p>
+                <p className="mt-1.5 truncate font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)]">{runtimeLabel}</p>
+              </div>
             </div>
 
-            <div className="grid w-[min(900px,100%)] grid-cols-4 gap-2">
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--bg-raised)] px-3 py-2 text-center">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Coverage</p>
-                <p className="mt-1 text-[20px] font-semibold leading-none text-[var(--text-primary)]" data-testid="status-coverage">
+            <div className="grid w-[min(940px,100%)] grid-cols-4 gap-3 border-l border-white/40 pl-5">
+              <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Coverage</p>
+                <p className="mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--text-primary)]" data-testid="status-coverage">
                   {Math.round(state.metrics.coverage * 100)}%
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--bg-raised)] px-3 py-2 text-center">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Needs Attention</p>
-                <p className="mt-1 text-[20px] font-semibold leading-none text-[var(--text-primary)]" data-testid="status-unresolved">
+              <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Needs Attention</p>
+                <p className={`mt-2 font-display text-3xl font-medium tracking-tight tabular-nums ${state.metrics.unresolvedCount > 0 ? "text-[#CBAFA4]" : "text-[var(--text-primary)]"}`} data-testid="status-unresolved">
                   {state.metrics.unresolvedCount}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--bg-raised)] px-3 py-2 text-center">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Tracked</p>
-                <p className="mt-1 text-[18px] font-semibold leading-none text-[var(--text-primary)]">
+              <div
+                className="group time-fluid-fill relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:-translate-y-0.5"
+                style={{ "--fill-pct": Math.min(state.metrics.trackedHours / state.metrics.targetHours, 1) } as React.CSSProperties}
+              >
+                <div className="relative z-10 flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Tracked vs Target</p>
+                </div>
+                <p className="relative z-10 mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--accent-slate-700)]">
                   {formatHours(state.metrics.trackedHours)}
-                  <span className="mx-1 text-[var(--text-muted)]">/</span>
-                  {formatHours(state.metrics.targetHours)}
+                  <span className="mx-1.5 text-xl font-normal text-[var(--text-muted)]/50">/</span>
+                  <span className="text-xl font-normal text-[var(--text-muted)]">{formatHours(state.metrics.targetHours)}</span>
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--bg-raised)] px-3 py-2 text-center">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Submission</p>
-                <p
-                  className={`mt-1 text-[18px] font-semibold leading-none ${state.metrics.submitReady ? "text-[var(--accent-slate-600)]" : "text-[var(--text-secondary)]"}`}
-                >
-                  {state.metrics.submitReady ? "Ready" : "In Review"}
-                </p>
+              <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Submission State</p>
+                <div className="mt-2 flex items-center gap-2.5">
+                  <div className={`h-2.5 w-2.5 rounded-full ${state.metrics.submitReady ? "bg-[var(--accent-slate-500)] shadow-[0_0_12px_var(--accent-slate-500)] animate-pulse" : "bg-[var(--text-muted)]/30"}`} />
+                  {state.metrics.submitReady ? (
+                    <button 
+                      onClick={() => setIsDailySyncOpen(true)}
+                      className="font-display text-3xl font-medium tracking-tight text-[var(--accent-slate-700)] hover:text-black transition-colors"
+                    >
+                      Sync Ready
+                    </button>
+                  ) : (
+                    <p className="font-display text-3xl font-medium tracking-tight text-[var(--text-secondary)]">
+                      In Review
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] gap-3">
-          <section className="min-h-0 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-panel)] p-3 shadow-[0_1px_2px_rgba(82,75,64,0.04)]">
-            <div className="grid h-full grid-cols-[minmax(0,1.75fr)_300px] gap-3">
-              <div className="flex min-h-0 flex-col rounded-xl border border-[var(--border-soft)] bg-[var(--bg-raised)] p-3">
-                <div className="flex items-center justify-between gap-3">
+        <div className="grid min-h-0 flex-1 grid-cols-[80px_minmax(0,1fr)_320px] gap-4">
+          <section className="min-h-0 rounded-2xl bg-[var(--bg-panel)]/30 backdrop-blur-xl ring-1 ring-white/40 p-2 shadow-[0_2px_8px_rgba(82,75,64,0.03)] overflow-visible">
+             <ConfidenceTimeline sessions={currentPage.sessions} onAssignProject={handleAssignProject} />
+          </section>
+
+          <section className="min-h-0 flex flex-col gap-4">
+            <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.75fr)_340px] gap-4">
+              <div className="flex min-h-0 flex-col rounded-2xl bg-white/40 p-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_2px_8px_rgba(82,75,64,0.03)] ring-1 ring-white/50">
+                <div className="flex items-center justify-between gap-3 px-2 pt-1">
                   <div>
-                    <h1 className="font-display text-[1.34rem] tracking-tight text-[var(--text-primary)]">Session Matrix</h1>
-                    <p className="text-xs text-[var(--text-secondary)]">Captured work sessions, composed for one-glance review.</p>
+                    <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Session Matrix</h1>
+                    <p className="text-sm mt-1 text-[var(--text-secondary)]">Captured work sessions, composed for one-glance review.</p>
                   </div>
                   <div className="flex items-center gap-2" data-testid="matrix-pagination">
                     <button
@@ -407,7 +561,7 @@ export default function TimeReportingWorkspace({
                   </div>
                 </div>
 
-                <div className="mt-3 grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2" data-testid="matrix-grid">
+                <div className={`mt-3 grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2 ${focusedSessionId ? "matrix-grid-spotlight" : ""}`} data-testid="matrix-grid">
                   {matrixSlots.map((slot) => {
                     if (!slot.session) {
                       return (
@@ -425,19 +579,24 @@ export default function TimeReportingWorkspace({
                         type="button"
                         data-testid={`matrix-slot-${slot.session.id}`}
                         onClick={() => activateSession(slot.session!.id)}
-                        className={`flex h-full flex-col items-start justify-between rounded-lg border px-3 py-2 text-left transition ${interactiveStateClasses.focus} ${
+                        className={`matrix-slot flex h-full flex-col items-start justify-between rounded-xl px-4 py-3.5 text-left border-0 ${interactiveStateClasses.focus} ${
                           slot.isFocused
-                            ? interactiveStateClasses.active
-                            : `${interactiveStateClasses.default} ${interactiveStateClasses.hover}`
+                            ? `matrix-slot--focused bg-white ring-2 ring-[var(--accent-slate-500)] ring-offset-2 ring-offset-[var(--bg-panel)]/50 shadow-[0_8px_24px_rgba(82,75,64,0.08)]`
+                            : `bg-white/50 ring-1 ring-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,1),0_2px_4px_rgba(82,75,64,0.03)]`
                         }`}
                       >
-                        <div>
-                          <p className="text-sm font-medium leading-5 text-[var(--text-primary)]">{slot.session.summary}</p>
-                          <p className="mt-1 text-xs text-[var(--text-secondary)]">{slot.session.project ?? "Unassigned"}</p>
+                        <div className="flex w-full items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[15px] font-semibold tracking-tight leading-snug text-[var(--text-primary)]">{slot.session.summary}</p>
+                            <p className="mt-1.5 font-mono text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">{slot.session.project ?? "Unassigned"}</p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-black/5 ring-1 ring-black/5 px-2.5 py-1 font-mono text-xs tabular-nums text-[var(--accent-slate-700)] font-medium">
+                            {formatHours(slot.session.durationMinutes / 60)}
+                          </span>
                         </div>
-                        <div className="mt-2 w-full text-xs text-[var(--text-muted)]">
-                          <p>{reviewStateLabel[slot.session.reviewState]}</p>
-                          <p className="mt-1">{formatWindow(slot.session.startedAt, slot.session.endedAt)}</p>
+                        <div className="mt-auto pt-4 w-full text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                          <p className="font-medium bg-[var(--bg-shell)]/80 px-2 py-0.5 rounded text-[11px]">{reviewStateLabel[slot.session.reviewState]}</p>
+                          <p className="font-mono tabular-nums text-[var(--text-muted)]">{formatWindow(slot.session.startedAt, slot.session.endedAt)}</p>
                         </div>
                       </button>
                     );
@@ -445,16 +604,16 @@ export default function TimeReportingWorkspace({
                 </div>
               </div>
 
-              <aside className="rounded-xl border border-[var(--border-soft)] bg-[var(--bg-raised)] p-4" data-testid="matrix-focus-panel">
+              <aside className="rounded-2xl bg-[var(--bg-raised)]/80 backdrop-blur-xl p-5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_4px_12px_rgba(82,75,64,0.04)] ring-1 ring-white/60" data-testid="matrix-focus-panel">
                 {focusedSession ? (
                   <div className="flex h-full flex-col">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Focused Session</p>
-                    <h2 className="mt-2 font-display text-lg leading-6 text-[var(--text-primary)]">{focusedSession.summary}</h2>
-                    <p className="mt-2 text-sm text-[var(--text-secondary)]">{focusedSession.project ?? "Project assignment needed"}</p>
-                    <p className="mt-2 text-xs text-[var(--text-muted)]">
-                      {formatWindow(focusedSession.startedAt, focusedSession.endedAt)} · {formatHours(focusedSession.durationMinutes / 60)}
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Focused Session</p>
+                    <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight leading-tight text-[var(--text-primary)]">{focusedSession.summary}</h2>
+                    <p className="mt-3 font-mono text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">{focusedSession.project ?? "Project assignment needed"}</p>
+                    <p className="mt-3 inline-block self-start rounded-md bg-white/60 ring-1 ring-[var(--border-soft)] px-2.5 py-1 font-mono text-sm tabular-nums text-[var(--accent-slate-700)] font-medium">
+                      {formatWindow(focusedSession.startedAt, focusedSession.endedAt)} · <span className="opacity-70">{formatHours(focusedSession.durationMinutes / 60)}</span>
                     </p>
-                    <p className="mt-4 text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Signals</p>
+                    <p className="mt-8 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)] border-b border-[var(--border-soft)] pb-2 mb-3">Signals</p>
                     <p className="mt-1 text-sm text-[var(--text-secondary)]">
                       {focusedSession.signals.slice(0, 3).join(" · ") || "No high-signal hints"}
                     </p>
@@ -483,10 +642,10 @@ export default function TimeReportingWorkspace({
             </div>
           </section>
 
-          <aside className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-panel)] p-3 shadow-[0_1px_2px_rgba(82,75,64,0.04)]">
-            <div className="border-b border-[var(--border-soft)] pb-2">
-              <h3 className="font-display text-lg tracking-tight text-[var(--text-primary)]">Review</h3>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">Up/Down to navigate, Enter for detail, R to resolve.</p>
+          <aside className="rounded-3xl bg-[var(--bg-panel)]/50 backdrop-blur-3xl ring-1 ring-white/60 p-5 shadow-[0_8px_32px_rgba(82,75,64,0.06)] flex flex-col">
+            <div className="border-b border-white/40 pb-4 mb-4">
+              <h3 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Review Queue</h3>
+              <p className="mt-1.5 align-middle text-sm text-[var(--text-secondary)]">Use <kbd className="font-mono text-xs bg-black/5 ring-1 ring-black/10 rounded px-1 py-0.5 mx-0.5">↑`/`↓</kbd> to navigate, <kbd className="font-mono text-xs bg-black/5 ring-1 ring-black/10 rounded px-1 py-0.5 mx-0.5">Enter</kbd> to detail.</p>
             </div>
 
             <ul className="mt-2 space-y-2" data-testid="review-list">
@@ -503,17 +662,17 @@ export default function TimeReportingWorkspace({
                         setFocusedSessionId(item.sessionId);
                         dispatch({ type: "open_drawer", sessionId: item.sessionId });
                       }}
-                      className={`w-full rounded-lg border px-2.5 py-2 text-left ${interactiveStateClasses.focus} ${
+                      className={`w-full rounded-xl px-3 py-2.5 text-left border-0 transition-all ${interactiveStateClasses.focus} ${
                         isSelected
-                          ? interactiveStateClasses.active
-                          : `${interactiveStateClasses.default} ${interactiveStateClasses.hover}`
+                          ? `bg-white shadow-[0_4px_12px_rgba(82,75,64,0.06)] ring-1 ring-[var(--accent-slate-500)]`
+                          : `bg-white/40 ring-1 ring-white/60 hover:bg-white/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_4px_rgba(82,75,64,0.03)] hover:-translate-y-px`
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        <span className={`mt-1 h-2 w-2 rounded-full ${reviewMarkerClass[item.priority]}`} aria-hidden="true" />
-                        <div>
-                          <p className="text-sm font-medium leading-5 text-[var(--text-primary)]">{item.title}</p>
-                          <p className="mt-0.5 text-xs leading-4 text-[var(--text-secondary)]">{item.hint}</p>
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-1.5 shrink-0 h-2.5 w-2.5 rounded-full ring-1 ring-black/10 ${reviewMarkerClass[item.priority]}`} aria-hidden="true" />
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-semibold tracking-tight leading-tight text-[var(--text-primary)]">{item.title}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)] opacity-90">{item.hint}</p>
                         </div>
                       </div>
                     </button>
@@ -535,20 +694,24 @@ export default function TimeReportingWorkspace({
         </div>
       </div>
 
-      <div
-        className={`fixed inset-y-0 right-0 z-20 w-[420px] border-l border-[var(--border-default)] bg-[var(--bg-raised)] p-4 shadow-[-8px_0_20px_rgba(82,75,64,0.08)] transition-transform duration-200 ease-out ${
-          state.drawerOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+      <AnimatePresence>
+      {state.drawerOpen && (
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="fixed inset-y-0 right-0 z-30 w-[460px] border-l border-white/50 bg-[var(--bg-raised)]/80 backdrop-blur-3xl p-6 shadow-[-16px_0_48px_rgba(82,75,64,0.15)]"
       >
         {drawerSession ? (
           <div className="flex h-full flex-col">
-            <div className="mb-4 flex items-start justify-between border-b border-[var(--border-soft)] pb-3">
+            <div className="mb-6 flex items-start justify-between border-b border-[var(--border-soft)] pb-5">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Session details</p>
-                <h3 className="mt-1 font-display text-xl tracking-tight text-[var(--text-primary)]" data-testid="drawer-session-title">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Session Review</p>
+                <h3 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] leading-none" data-testid="drawer-session-title">
                   {drawerSession.summary}
                 </h3>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">{formatWindow(drawerSession.startedAt, drawerSession.endedAt)}</p>
+                <p className="mt-3 font-mono text-xs tabular-nums text-[var(--accent-slate-600)] bg-white/60 ring-1 ring-white border border-[var(--border-soft)] w-max px-2.5 py-1 rounded-md">{formatWindow(drawerSession.startedAt, drawerSession.endedAt)} · <span className="opacity-70">{formatHours(drawerSession.durationMinutes / 60)}</span></p>
               </div>
               <button
                 type="button"
@@ -561,27 +724,27 @@ export default function TimeReportingWorkspace({
 
             <div className="space-y-3 overflow-y-auto pr-1">
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Project</span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Project</span>
                 <input
                   value={draftProject}
                   onChange={(event) => setDraftProject(event.target.value)}
                   placeholder="Assign project"
-                  className={`w-full rounded-md border px-3 py-2 text-sm ${neutralControl} ${interactiveStateClasses.focus}`}
+                  className="drawer-input w-full rounded-md px-3 py-2 text-sm text-[var(--text-primary)]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Session summary</span>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Session summary</span>
                 <textarea
                   value={draftSummary}
                   onChange={(event) => setDraftSummary(event.target.value)}
                   rows={4}
-                  className={`w-full rounded-md border px-3 py-2 text-sm ${neutralControl} ${interactiveStateClasses.focus}`}
+                  className="drawer-input w-full rounded-md px-3 py-2 text-sm text-[var(--text-primary)]"
                 />
               </label>
 
               <div>
-                <label className="mb-1 block text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Confidence override</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Confidence override</label>
                 <input
                   type="range"
                   min="0"
@@ -634,10 +797,17 @@ export default function TimeReportingWorkspace({
               ) : null}
 
               {drawerExplanation ? (
-                <div className={`rounded-lg border px-3 py-3 ${interactiveStateClasses.info}`}>
-                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--accent-slate-700)]">AI rationale</p>
-                  <p className="mt-2 text-sm text-[var(--accent-slate-700)]">{drawerExplanation.rationale}</p>
-                  <p className="mt-2 text-xs text-[var(--accent-slate-700)]">
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`rounded-lg border px-3 py-3 ${interactiveStateClasses.info}`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-slate-700)]">AI rationale</p>
+                  <p className="mt-2 text-sm text-[var(--accent-slate-700)]">
+                    <Typewriter text={drawerExplanation.rationale} speed={18} />
+                  </p>
+                  <p className="mt-2 text-xs tabular-nums text-[var(--accent-slate-700)]">
                     Confidence: {Math.round(drawerExplanation.confidence * 100)}%
                   </p>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[var(--accent-slate-700)]">
@@ -645,14 +815,30 @@ export default function TimeReportingWorkspace({
                       <li key={factor}>{factor}</li>
                     ))}
                   </ul>
-                </div>
+                </motion.div>
               ) : null}
             </div>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">Pick a session for detailed review.</div>
         )}
-      </div>
+      </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* AI Generative Summary Modal */}
+      <DailySyncModal 
+        isOpen={isDailySyncOpen} 
+        onClose={() => setIsDailySyncOpen(false)} 
+        sessions={state.sessions} 
+      />
+
+      {/* Proactive AI Nudges */}
+      <AiNudgeToast 
+        isOpen={showAiNudge} 
+        onDismiss={() => setShowAiNudge(false)} 
+        onAction={handleNudgeAction} 
+      />
     </div>
   );
 }

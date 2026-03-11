@@ -3,9 +3,11 @@
 @theme {
   --font-display: "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", "Helvetica Neue", sans-serif;
   --font-body: "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
 }
 
 :root {
+  /* We define these as hex, but we'll use translucent white/black overlays in the UI for the glass effect over a rich background */
   --bg-canvas: #E9E6DE;
   --bg-shell: #ECE8E1;
   --bg-panel: #F0ECE5;
@@ -34,12 +36,22 @@ body,
   min-height: 100%;
 }
 
+/* Premium Animated Mesh Canvas */
 body {
   margin: 0;
-  background:
-    radial-gradient(980px circle at 10% -10%, rgba(216, 209, 198, 0.22), transparent 42%),
-    radial-gradient(900px circle at 92% -25%, rgba(210, 201, 188, 0.2), transparent 40%),
-    var(--bg-canvas);
+  background-color: var(--bg-canvas);
+  background-image: 
+    radial-gradient(ellipse at 10% 0%, rgba(200, 192, 180, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 100%, rgba(180, 190, 200, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(220, 215, 205, 0.5) 0%, transparent 60%);
+  background-size: 200% 200%;
+  animation: mesh-movement 25s ease-in-out infinite alternate;
+}
+
+@keyframes mesh-movement {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 100%; }
 }
 
 * {
@@ -50,6 +62,61 @@ body {
   font-family: var(--font-display);
 }
 
+.font-mono {
+  font-family: var(--font-mono);
+}
+
 .titlebar-drag-region {
   -webkit-app-region: drag;
+}
+
+/* ── Tracked-hours fluid fill ── */
+.time-fluid-fill {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.time-fluid-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    to top,
+    rgba(110, 124, 140, 0.12) 0%,
+    rgba(110, 124, 140, 0.04) 100%
+  );
+  transform-origin: bottom center;
+  transform: scaleY(var(--fill-pct, 0));
+  transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+/* ── Typewriter cursor blink ── */
+.typewriter-cursor::after {
+  content: "▎";
+  animation: cursor-blink 1s steps(2) infinite;
+  color: var(--accent-slate-500);
+  margin-left: 1px;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Custom Scrollbar for Glass UI ── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1); 
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2); 
 }

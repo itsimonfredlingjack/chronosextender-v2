@@ -45,6 +45,7 @@ export interface WorkSession {
   signals: string[];
   source: SessionSource;
   confidence: number;
+  alternativeProjects?: string[];
   billable: boolean;
   reviewState: ReviewState;
   eventIds: string[];
