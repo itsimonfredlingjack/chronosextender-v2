@@ -10,8 +10,8 @@ const variants = {
   idle: {
     scale: [1, 1.15, 1],
     opacity: [0.4, 0.7, 0.4],
-    backgroundColor: "rgba(110, 124, 140, 1)", // accent-slate-500
-    boxShadow: "0 0 12px 2px rgba(110, 124, 140, 0.3)",
+    backgroundColor: "rgba(139, 92, 246, 1)", // ai-accent-base
+    boxShadow: "0 0 12px 2px rgba(139, 92, 246, 0.3)",
     transition: {
       duration: 4,
       repeat: Infinity,
@@ -21,11 +21,11 @@ const variants = {
   processing: {
     scale: [1, 1.3, 1],
     opacity: [0.7, 1, 0.7],
-    backgroundColor: "rgba(93, 107, 122, 1)", // accent-slate-600 with more intensity
+    backgroundColor: "rgba(124, 58, 237, 1)", // ai-accent-strong with more intensity
     boxShadow: [
-      "0 0 16px 4px rgba(93, 107, 122, 0.5), inset 0 0 4px rgba(255,255,255,0.4)",
-      "0 0 24px 8px rgba(93, 107, 122, 0.8), inset 0 0 8px rgba(255,255,255,0.8)",
-      "0 0 16px 4px rgba(93, 107, 122, 0.5), inset 0 0 4px rgba(255,255,255,0.4)",
+      "0 0 16px 4px rgba(124, 58, 237, 0.5), inset 0 0 4px rgba(255,255,255,0.4)",
+      "0 0 24px 8px rgba(124, 58, 237, 0.8), inset 0 0 8px rgba(255,255,255,0.8)",
+      "0 0 16px 4px rgba(124, 58, 237, 0.5), inset 0 0 4px rgba(255,255,255,0.4)",
     ],
     transition: {
       duration: 1.2,

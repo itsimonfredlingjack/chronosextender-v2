@@ -13,6 +13,7 @@ import { AskChronosBar } from "./ask-chronos-bar";
 import { DailySyncModal } from "./daily-sync-modal";
 import { Typewriter } from "./typewriter";
 import { AiNudgeToast } from "./ai-nudge-toast";
+import { getProjectColor } from "../lib/project-colors";
 
 function injectMockConfidence(sessions: WorkSession[]): WorkSession[] {
   return sessions.map((s, i) => {
@@ -588,7 +589,21 @@ export default function TimeReportingWorkspace({
                         <div className="flex w-full items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-[15px] font-semibold tracking-tight leading-snug text-[var(--text-primary)]">{slot.session.summary}</p>
-                            <p className="mt-1.5 font-mono text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">{slot.session.project ?? "Unassigned"}</p>
+                            {(() => {
+                              const pc = getProjectColor(slot.session.project);
+                              return (
+                                <span 
+                                  className="mt-1.5 inline-block rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider font-semibold ring-1 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                                  style={{
+                                    backgroundColor: pc.bgLight,
+                                    color: pc.textDark,
+                                    borderColor: pc.ring,
+                                  }}
+                                >
+                                  {slot.session.project ?? "Unassigned"}
+                                </span>
+                              );
+                            })()}
                           </div>
                           <span className="shrink-0 rounded-full bg-black/5 ring-1 ring-black/5 px-2.5 py-1 font-mono text-xs tabular-nums text-[var(--accent-slate-700)] font-medium">
                             {formatHours(slot.session.durationMinutes / 60)}
@@ -609,7 +624,23 @@ export default function TimeReportingWorkspace({
                   <div className="flex h-full flex-col">
                     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Focused Session</p>
                     <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight leading-tight text-[var(--text-primary)]">{focusedSession.summary}</h2>
-                    <p className="mt-3 font-mono text-[11px] uppercase tracking-wider text-[var(--text-secondary)]">{focusedSession.project ?? "Project assignment needed"}</p>
+                    <div className="mt-3 flex">
+                      {(() => {
+                        const pc = getProjectColor(focusedSession.project);
+                        return (
+                          <span 
+                            className="inline-block rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider font-semibold border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                            style={{
+                              backgroundColor: pc.bgLight,
+                              color: pc.textDark,
+                              borderColor: pc.ring,
+                            }}
+                          >
+                            {focusedSession.project ?? "Project assignment needed"}
+                          </span>
+                        );
+                      })()}
+                    </div>
                     <p className="mt-3 inline-block self-start rounded-md bg-white/60 ring-1 ring-[var(--border-soft)] px-2.5 py-1 font-mono text-sm tabular-nums text-[var(--accent-slate-700)] font-medium">
                       {formatWindow(focusedSession.startedAt, focusedSession.endedAt)} · <span className="opacity-70">{formatHours(focusedSession.durationMinutes / 60)}</span>
                     </p>

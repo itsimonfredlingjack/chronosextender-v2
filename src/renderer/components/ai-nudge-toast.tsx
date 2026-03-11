@@ -20,9 +20,9 @@ export function AiNudgeToast({ isOpen, onDismiss, onAction }: AiNudgeToastProps)
         >
           <div className="flex items-start gap-4">
             {/* Animated Orb Icon */}
-            <div className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-slate-500)]/10 ring-1 ring-[var(--accent-slate-500)]/20">
-              <div className="absolute inset-0 rounded-full bg-[var(--accent-slate-500)] opacity-20 blur-md animate-pulse" />
-              <div className="relative h-3 w-3 rounded-full bg-[var(--accent-slate-500)] shadow-[0_0_12px_var(--accent-slate-500)]" />
+            <div className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--ai-accent-base)]/10 ring-1 ring-[var(--ai-accent-base)]/20">
+              <div className="absolute inset-0 rounded-full bg-[var(--ai-accent-base)] opacity-20 blur-md animate-pulse" />
+              <div className="relative h-3 w-3 rounded-full bg-[var(--ai-accent-base)] shadow-[0_0_12px_var(--ai-accent-base)]" />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -37,7 +37,7 @@ export function AiNudgeToast({ isOpen, onDismiss, onAction }: AiNudgeToastProps)
                 <button
                   type="button"
                   onClick={() => onAction("split")}
-                  className={`rounded-xl bg-[var(--accent-slate-500)] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(82,75,64,0.1)] hover:bg-[var(--accent-slate-600)] transition-colors ${interactiveStateClasses.focus}`}
+                  className={`rounded-xl bg-[var(--ai-accent-base)] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(82,75,64,0.1)] hover:bg-[var(--ai-accent-strong)] transition-colors ${interactiveStateClasses.focus}`}
                 >
                   Split Session
                 </button>

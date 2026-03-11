@@ -23,6 +23,11 @@
   --accent-slate-700: #4F5D6C;
   --focus-ring: #A8B5C3;
 
+  /* AI Semantic Colors (Iridescent Violet) */
+  --ai-accent-soft: #A78BFA;
+  --ai-accent-base: #8B5CF6;
+  --ai-accent-strong: #7C3AED;
+
   color-scheme: light;
   font-family: var(--font-body);
   text-rendering: optimizeLegibility;

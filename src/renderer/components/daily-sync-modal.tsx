@@ -55,7 +55,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
           >
             <div className="flex items-start justify-between border-b border-[var(--border-soft)] pb-4">
               <div>
-                <p className="font-display text-xs font-bold uppercase tracking-[0.15em] text-[var(--accent-slate-500)]">
+                <p className="font-display text-xs font-bold uppercase tracking-[0.15em] text-[var(--ai-accent-base)]">
                   End of Day Recap
                 </p>
                 <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
@@ -111,7 +111,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
               <button
                 type="button"
                 onClick={onClose}
-                className={`rounded-xl bg-[var(--accent-slate-500)] px-5 py-2 text-sm font-medium text-white shadow-[0_4px_12px_rgba(82,75,64,0.1)] hover:bg-[var(--accent-slate-600)] transition-colors ${interactiveStateClasses.focus}`}
+                className={`rounded-xl bg-[var(--ai-accent-base)] px-5 py-2 text-sm font-medium text-white shadow-[0_4px_12px_rgba(82,75,64,0.1)] hover:bg-[var(--ai-accent-strong)] transition-colors ${interactiveStateClasses.focus}`}
               >
                 Complete Sync
               </button>

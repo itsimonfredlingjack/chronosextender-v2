@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import type { WorkSession } from "../lib/types";
 
+import { getProjectColor } from "../lib/project-colors";
+
 const DAY_START_HOUR = 8;
 const DAY_END_HOUR = 18;
 const TOTAL_MINUTES = (DAY_END_HOUR - DAY_START_HOUR) * 60;
@@ -11,10 +13,22 @@ interface ConfidenceTimelineProps {
   onAssignProject: (sessionId: string, project: string) => void;
 }
 
-const confColor = (conf: number) => {
-  if (conf >= 80) return { bg: "rgba(110, 124, 140, 0.55)", ring: "rgba(110, 124, 140, 0.3)" };
-  if (conf >= 50) return { bg: "rgba(110, 124, 140, 0.3)", ring: "rgba(110, 124, 140, 0.2)" };
-  return { bg: "rgba(203, 175, 164, 0.35)", ring: "rgba(203, 175, 164, 0.4)" };
+const confColor = (conf: number, project?: string | null) => {
+  const baseColor = getProjectColor(project);
+
+  if (conf >= 80) return { 
+    bg: baseColor.bgLight.replace("92%)", "60%)"), // Darken background slightly for solid blocks
+    ring: baseColor.ring 
+  };
+  if (conf >= 50) return { 
+    bg: baseColor.bgLight.replace("92%", "80%").replace("hsl", "hsla").replace(")", ", 0.6)"), 
+    ring: baseColor.ring.replace("hsl", "hsla").replace(")", ", 0.5)") 
+  };
+  return { 
+    bg: baseColor.bgLight.replace("hsl", "hsla").replace(")", ", 0.4)"), 
+    ring: baseColor.ring.replace("hsl", "hsla").replace(")", ", 0.6)"),
+    stripeBase: baseColor.bgLight.replace("92%)", "75%)").replace("hsl", "hsla").replace(")", ", 0.5)")
+  };
 };
 
 export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTimelineProps) {
@@ -56,7 +70,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
           const conf = session.confidence ?? 100;
           const isLow = conf < 50;
           const isHigh = conf >= 80;
-          const colors = confColor(conf);
+          const colors = confColor(conf, session.project);
           const hovered = hoveredId === session.id;
 
           return (
@@ -75,10 +89,10 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                   backgroundColor: colors.bg,
                   boxShadow: `inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 3px ${colors.ring}`,
                   border: `1px solid ${colors.ring}`,
-                  ...(isLow
+                  ...(isLow && colors.stripeBase
                     ? {
                         backgroundImage:
-                          "repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(203,175,164,0.15) 3px, rgba(203,175,164,0.15) 6px)",
+                          `repeating-linear-gradient(135deg, transparent, transparent 3px, ${colors.stripeBase} 3px, ${colors.stripeBase} 6px)`,
                       }
                     : {}),
                 }}
@@ -114,7 +128,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                           className="flex w-full items-center justify-between rounded-md bg-black/[0.03] px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-primary)] ring-1 ring-black/[0.04] transition-all hover:bg-black/[0.06] hover:-translate-y-px hover:shadow-sm"
                         >
                           <span className="truncate">{alt}</span>
-                          <span className="ml-1.5 shrink-0 text-[9px] font-bold uppercase text-[var(--accent-slate-500)]">Set</span>
+                          <span className="ml-1.5 shrink-0 text-[9px] font-bold uppercase text-[var(--ai-accent-base)]">Set</span>
                         </button>
                       ))}
                     </div>

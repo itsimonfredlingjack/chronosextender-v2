@@ -129,8 +129,8 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 className="overflow-hidden px-2 pb-1"
               >
-                <div className="flex items-start gap-2.5 rounded-lg bg-[var(--accent-slate-500)]/5 p-3 text-sm ring-1 ring-[var(--accent-slate-500)]/20">
-                  <div className="mt-0.5 flex h-4 w-4 shrink-0 justify-center text-[var(--accent-slate-500)]">
+                <div className="flex items-start gap-2.5 rounded-lg bg-[var(--ai-accent-base)]/5 p-3 text-sm ring-1 ring-[var(--ai-accent-base)]/20">
+                  <div className="mt-0.5 flex h-4 w-4 shrink-0 justify-center text-[var(--ai-accent-base)]">
                     ✨
                   </div>
                   <p className="font-medium leading-relaxed text-[var(--text-primary)]">
