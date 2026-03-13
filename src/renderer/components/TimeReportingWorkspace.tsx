@@ -17,8 +17,8 @@ import { getProjectColor } from "../lib/project-colors";
 
 function injectMockConfidence(sessions: WorkSession[]): WorkSession[] {
   return sessions.map((s, i) => {
-    if (i === 1) return { ...s, confidence: 45, alternativeProjects: ["Figma Redesign", "Slack Comm", "Internal Meeting"] };
-    if (i === 3) return { ...s, confidence: 72, alternativeProjects: ["Client Call", "Review PRs"] };
+    if (i === 1) return { ...s, confidence: 0.45, alternativeProjects: ["Figma Redesign", "Slack Comm", "Internal Meeting"] };
+    if (i === 3) return { ...s, confidence: 0.72, alternativeProjects: ["Client Call", "Review PRs"] };
     return s;
   });
 }
@@ -375,7 +375,7 @@ export default function TimeReportingWorkspace({
     dispatch({
       type: "update_session",
       sessionId,
-      patch: { project, confidence: 100 },
+      patch: { project, confidence: 1 },
     });
   };
 

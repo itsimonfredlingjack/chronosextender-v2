@@ -108,4 +108,13 @@ describe("renderer integration", () => {
 
     expect(screen.getByTestId("matrix-slot-session-7")).toBeInTheDocument();
   });
+
+  it("shows injected session confidence as a percentage from the 0..1 model", async () => {
+    render(<TimeReportingWorkspace events={integrationEvents} runtime={integrationRuntime} targetHours={4} />);
+
+    await userEvent.click(screen.getByTestId("matrix-slot-session-2"));
+    await userEvent.click(screen.getByRole("button", { name: "Open details" }));
+
+    expect(screen.getByText("45% confidence")).toBeInTheDocument();
+  });
 });

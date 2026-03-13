@@ -58,6 +58,8 @@ const confColor = (conf: number, project?: string | null) => {
   };
 };
 
+const toConfidencePercent = (confidence: number) => Math.round(confidence * 100);
+
 export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTimelineProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -94,10 +96,11 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
           if (top + height > 100) height = 100 - top;
           if (height <= 0 || top > 100) return null;
 
-          const conf = session.confidence ?? 100;
-          const isLow = conf < 50;
-          const isHigh = conf >= 80;
-          const colors = confColor(conf, session.project);
+          const conf = session.confidence ?? 1;
+          const confidencePercent = toConfidencePercent(conf);
+          const isLow = confidencePercent < 50;
+          const isHigh = confidencePercent >= 80;
+          const colors = confColor(confidencePercent, session.project);
           const hovered = hoveredId === session.id;
 
           return (
@@ -127,7 +130,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                 {/* Inline confidence % label when block is tall enough */}
                 {height > 6 && (
                   <span className="block px-1 pt-1 font-mono text-[9px] font-bold leading-none text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
-                    {Math.round(conf)}%
+                    {confidencePercent}%
                   </span>
                 )}
               </div>
@@ -144,7 +147,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                     <div className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)]" />
 
                     <p className="relative z-10 text-[11px] font-medium leading-snug text-[var(--text-primary)]">
-                      <span className="font-mono font-bold">{Math.round(conf)}%</span> confident — which project?
+                      <span className="font-mono font-bold">{confidencePercent}%</span> confident — which project?
                     </p>
 
                     <div className="relative z-10 mt-2 flex flex-col gap-1">
