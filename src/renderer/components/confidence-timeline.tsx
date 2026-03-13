@@ -13,21 +13,48 @@ interface ConfidenceTimelineProps {
   onAssignProject: (sessionId: string, project: string) => void;
 }
 
+const parseRgb = (rgba: string) => {
+  const match = rgba.match(/rgba?\(([^)]+)\)/i);
+  if (!match) {
+    return null;
+  }
+
+  const channels = (match[1] ?? "").split(",").map((value) => value.trim());
+  const [r = "255", g = "255", b = "255"] = channels;
+  return [r, g, b] as const;
+};
+
+const withAlpha = (color: string, alpha: number) => {
+  const rgb = parseRgb(color);
+  if (!rgb) {
+    return color;
+  }
+
+  const [r, g, b] = rgb;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const confColor = (conf: number, project?: string | null) => {
   const baseColor = getProjectColor(project);
 
-  if (conf >= 80) return { 
-    bg: baseColor.bgLight.replace("92%)", "60%)"), // Darken background slightly for solid blocks
-    ring: baseColor.ring 
-  };
-  if (conf >= 50) return { 
-    bg: baseColor.bgLight.replace("92%", "80%").replace("hsl", "hsla").replace(")", ", 0.6)"), 
-    ring: baseColor.ring.replace("hsl", "hsla").replace(")", ", 0.5)") 
-  };
-  return { 
-    bg: baseColor.bgLight.replace("hsl", "hsla").replace(")", ", 0.4)"), 
-    ring: baseColor.ring.replace("hsl", "hsla").replace(")", ", 0.6)"),
-    stripeBase: baseColor.bgLight.replace("92%)", "75%)").replace("hsl", "hsla").replace(")", ", 0.5)")
+  if (conf >= 80) {
+    return {
+      bg: withAlpha(baseColor.textDark, 0.26),
+      ring: withAlpha(baseColor.textDark, 0.56),
+    };
+  }
+
+  if (conf >= 50) {
+    return {
+      bg: withAlpha(baseColor.textDark, 0.18),
+      ring: withAlpha(baseColor.textDark, 0.48),
+    };
+  }
+
+  return {
+    bg: withAlpha(baseColor.textDark, 0.12),
+    ring: withAlpha(baseColor.textDark, 0.44),
+    stripeBase: withAlpha(baseColor.textDark, 0.28),
   };
 };
 
@@ -37,16 +64,16 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
   return (
     <div className="flex h-full w-full flex-col gap-2">
       {/* Track */}
-      <div className="relative flex-1 rounded-xl bg-white/25 ring-1 ring-black/[0.03] overflow-visible">
+      <div className="glass-panel relative flex-1 overflow-visible rounded-xl">
         {/* Hour grid */}
         {Array.from({ length: DAY_END_HOUR - DAY_START_HOUR + 1 }).map((_, i) => {
           const hour = DAY_START_HOUR + i;
           const top = (i * 60 / TOTAL_MINUTES) * 100;
           return (
             <div key={hour} className="absolute inset-x-0 z-0" style={{ top: `${top}%` }}>
-              <div className="border-t border-black/[0.04]" />
+              <div className="border-t border-white/10" />
               {hour % 3 === 0 && (
-                <span className="absolute left-1 top-0.5 font-mono text-[8px] leading-none text-black/25 select-none">
+                <span className="absolute left-1 top-0.5 select-none font-mono text-[8px] leading-none text-white/40">
                   {hour}
                 </span>
               )}
@@ -87,7 +114,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                 }`}
                 style={{
                   backgroundColor: colors.bg,
-                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.4), 0 1px 3px ${colors.ring}`,
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 5px ${colors.ring}`,
                   border: `1px solid ${colors.ring}`,
                   ...(isLow && colors.stripeBase
                     ? {
@@ -112,9 +139,9 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: -4, scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                    className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 w-52 rounded-xl bg-white/95 backdrop-blur-2xl p-3 shadow-[0_8px_28px_rgba(82,75,64,0.16)] ring-1 ring-black/[0.06]"
+                    className="glass-panel-strong absolute left-full top-1/2 z-50 ml-3 w-52 -translate-y-1/2 rounded-xl p-3"
                   >
-                    <div className="pointer-events-none absolute -left-1 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rotate-45 bg-white/95 ring-1 ring-black/[0.06] shadow-[-1px_1px_2px_rgba(82,75,64,0.06)]" />
+                    <div className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)]" />
 
                     <p className="relative z-10 text-[11px] font-medium leading-snug text-[var(--text-primary)]">
                       <span className="font-mono font-bold">{Math.round(conf)}%</span> confident — which project?
@@ -125,7 +152,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                         <button
                           key={alt}
                           onClick={() => onAssignProject(session.id, alt)}
-                          className="flex w-full items-center justify-between rounded-md bg-black/[0.03] px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-primary)] ring-1 ring-black/[0.04] transition-all hover:bg-black/[0.06] hover:-translate-y-px hover:shadow-sm"
+                          className="flex w-full items-center justify-between rounded-md border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-primary)] transition-all hover:-translate-y-px hover:border-[var(--glass-border-bright)] hover:bg-[var(--bg-raised)]"
                         >
                           <span className="truncate">{alt}</span>
                           <span className="ml-1.5 shrink-0 text-[9px] font-bold uppercase text-[var(--ai-accent-base)]">Set</span>

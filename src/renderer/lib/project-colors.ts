@@ -1,6 +1,6 @@
 /**
- * Utility functions for generating consistent, accessible pastel HSL colors
- * based on string inputs (like project names).
+ * Utility functions for generating deterministic category colors for projects.
+ * Colors are constrained to the four fixed category hues from the design system.
  */
 
 export interface ProjectColor {
@@ -21,30 +21,42 @@ function hashString(str: string): number {
 }
 
 /**
- * Generates a consistent HSL color badge for a given project name.
- * We fix Saturation at 80% to keep it colorful but controlled,
- * and vary the hue based on the string hash.
+ * Converts a HEX color string to [r, g, b].
  */
+function hexToRgb(hex: string): [number, number, number] {
+  const value = hex.replace("#", "");
+  const r = Number.parseInt(value.slice(0, 2), 16);
+  const g = Number.parseInt(value.slice(2, 4), 16);
+  const b = Number.parseInt(value.slice(4, 6), 16);
+  return [r, g, b];
+}
+
+function rgbaFromHex(hex: string, alpha: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+const fixedCategoryPalette = ["#34C759", "#FF375F", "#FF9F0A", "#30B0C7"] as const;
+
+function buildProjectColor(hex: string): ProjectColor {
+  return {
+    bgLight: rgbaFromHex(hex, 0.18),
+    textDark: rgbaFromHex(hex, 0.96),
+    ring: rgbaFromHex(hex, 0.52),
+  };
+}
+
 export function getProjectColor(projectName?: string | null): ProjectColor {
   if (!projectName || projectName.toLowerCase() === "unassigned") {
-    // Return a neutral slate color for unassigned items
     return {
-      bgLight: "rgba(110, 124, 140, 0.15)", // Equivalent to bg-[var(--accent-slate-500)]/15
-      textDark: "rgba(79, 93, 108, 1)", // Equivalent to text-[var(--accent-slate-700)]
-      ring: "rgba(110, 124, 140, 0.25)", // Equivalent to ring-[var(--accent-slate-500)]/25
+      bgLight: "rgba(255, 255, 255, 0.08)",
+      textDark: "rgba(255, 255, 255, 0.84)",
+      ring: "rgba(255, 255, 255, 0.24)",
     };
   }
 
-  // Hash the string to get a consistent Hue (0-360)
   const hash = hashString(projectName);
-  const hue = hash % 360;
+  const colorHex = fixedCategoryPalette[hash % fixedCategoryPalette.length] ?? fixedCategoryPalette[0];
 
-  return {
-    // Soft pastel background
-    bgLight: `hsl(${hue}, 80%, 92%)`,
-    // Deep, accessible text color on that background
-    textDark: `hsl(${hue}, 80%, 25%)`,
-    // Subtle matching border ring
-    ring: `hsl(${hue}, 80%, 80%)`,
-  };
+  return buildProjectColor(colorHex);
 }

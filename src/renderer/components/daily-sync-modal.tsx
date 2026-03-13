@@ -51,7 +51,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="relative flex w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-white/75 p-6 shadow-[0_32px_64px_-12px_rgba(82,75,64,0.35)] ring-1 ring-white/90 backdrop-blur-3xl"
+            className="glass-panel-strong relative flex w-full max-w-xl flex-col overflow-hidden rounded-3xl p-6"
           >
             <div className="flex items-start justify-between border-b border-[var(--border-soft)] pb-4">
               <div>
@@ -65,7 +65,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
               <button
                 type="button"
                 onClick={onClose}
-                className={`flex h-8 w-8 items-center justify-center rounded-full bg-black/5 hover:bg-black/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors ${interactiveStateClasses.focus}`}
+                className={`flex h-8 w-8 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -73,7 +73,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
               </button>
             </div>
 
-            <div className="mt-6 min-h-[120px] rounded-2xl bg-[var(--bg-shell)]/50 p-5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.04]">
+            <div className="glass-panel mt-6 min-h-[120px] rounded-2xl p-5">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 shrink-0 text-xl">✨</span>
                 <p className="text-[15px] leading-relaxed text-[var(--text-primary)]">
@@ -88,8 +88,8 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
                 onClick={handleCopy}
                 className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                   isCopied
-                    ? "bg-green-50 text-green-700 ring-1 ring-green-600/20"
-                    : `bg-white/60 text-[var(--text-primary)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_4px_rgba(82,75,64,0.05)] ring-1 ring-black/[0.04] hover:bg-white/80 ${interactiveStateClasses.focus}`
+                    ? "border border-[var(--category-green)]/40 bg-[var(--category-green)]/15 text-[var(--category-green)]"
+                    : `border border-[var(--glass-border)] bg-[var(--glass-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-raised)] ${interactiveStateClasses.focus}`
                 }`}
               >
                 {isCopied ? (
@@ -111,7 +111,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
               <button
                 type="button"
                 onClick={onClose}
-                className={`rounded-xl bg-[var(--ai-accent-base)] px-5 py-2 text-sm font-medium text-white shadow-[0_4px_12px_rgba(82,75,64,0.1)] hover:bg-[var(--ai-accent-strong)] transition-colors ${interactiveStateClasses.focus}`}
+                className={`aurora-cta rounded-xl px-5 py-2 text-sm font-medium ${interactiveStateClasses.focus}`}
               >
                 Complete Sync
               </button>

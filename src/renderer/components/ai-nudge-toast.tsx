@@ -16,7 +16,7 @@ export function AiNudgeToast({ isOpen, onDismiss, onAction }: AiNudgeToastProps)
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="fixed bottom-6 right-6 z-[100] w-full max-w-sm rounded-2xl bg-white/75 p-5 shadow-[0_32px_64px_-12px_rgba(82,75,64,0.35)] ring-1 ring-white/90 backdrop-blur-3xl"
+          className="glass-panel-strong fixed bottom-6 right-6 z-[100] w-full max-w-sm rounded-2xl p-5"
         >
           <div className="flex items-start gap-4">
             {/* Animated Orb Icon */}
@@ -37,14 +37,14 @@ export function AiNudgeToast({ isOpen, onDismiss, onAction }: AiNudgeToastProps)
                 <button
                   type="button"
                   onClick={() => onAction("split")}
-                  className={`rounded-xl bg-[var(--ai-accent-base)] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(82,75,64,0.1)] hover:bg-[var(--ai-accent-strong)] transition-colors ${interactiveStateClasses.focus}`}
+                  className={`aurora-cta rounded-xl px-3 py-1.5 text-xs font-semibold ${interactiveStateClasses.focus}`}
                 >
                   Split Session
                 </button>
                 <button
                   type="button"
                   onClick={() => onAction("pause")}
-                  className={`rounded-xl bg-white/60 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_4px_rgba(82,75,64,0.05)] ring-1 ring-black/[0.04] hover:bg-white/80 transition-colors ${interactiveStateClasses.focus}`}
+                  className={`rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-raised)] ${interactiveStateClasses.focus}`}
                 >
                   Pause Timer
                 </button>
@@ -52,7 +52,7 @@ export function AiNudgeToast({ isOpen, onDismiss, onAction }: AiNudgeToastProps)
                 <button
                   type="button"
                   onClick={onDismiss}
-                  className={`rounded-xl px-2 py-1.5 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-black/5 transition-colors ${interactiveStateClasses.focus}`}
+                  className={`rounded-xl px-2 py-1.5 text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--glass-surface)] hover:text-[var(--text-primary)] transition-colors ${interactiveStateClasses.focus}`}
                 >
                   Ignore
                 </button>
@@ -63,7 +63,7 @@ export function AiNudgeToast({ isOpen, onDismiss, onAction }: AiNudgeToastProps)
             <button
               type="button"
               onClick={onDismiss}
-              className={`absolute right-3 top-3 rounded-full p-1 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text-primary)] transition-colors ${interactiveStateClasses.focus}`}
+              className={`absolute right-3 top-3 rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--glass-surface)] hover:text-[var(--text-primary)] transition-colors ${interactiveStateClasses.focus}`}
             >
                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

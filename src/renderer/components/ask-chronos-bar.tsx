@@ -46,7 +46,7 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+            className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[2px]"
             onClick={() => inputRef.current?.blur()}
           />
         )}
@@ -59,13 +59,13 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
             y: isFocused ? 2 : 0,
           }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className={`relative mx-auto w-full max-w-3xl rounded-2xl bg-white/75 p-1.5 backdrop-blur-3xl transition-all duration-300 ${
+          className={`relative mx-auto w-full max-w-3xl rounded-2xl p-1.5 transition-all duration-300 ${
             isFocused
-              ? "shadow-[0_32px_64px_-12px_rgba(82,75,64,0.35)] ring-1 ring-white/90"
-              : "shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_4px_16px_rgba(82,75,64,0.1)] ring-1 ring-white/80 hover:bg-white/85 hover:shadow-[0_6px_24px_rgba(82,75,64,0.15)]"
+              ? "glass-panel-strong"
+              : "glass-panel hover:bg-[var(--glass-surface-strong)]"
           }`}
         >
-          <div className="flex w-full items-center gap-2 rounded-xl bg-white/60 px-4 py-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.04]">
+          <div className="glass-chip flex w-full items-center gap-2 rounded-xl px-4 py-3">
             {/* Search Icon / Loader */}
             <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--text-secondary)]">
               {isProcessing ? (
@@ -99,8 +99,8 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                   exit={{ opacity: 0 }}
                   className="flex shrink-0 items-center gap-1 text-[10px] font-medium text-[var(--text-muted)]"
                 >
-                  <kbd className="rounded border border-black/10 bg-black/5 px-1 py-0.5 font-mono">⌘</kbd>
-                  <kbd className="rounded border border-black/10 bg-black/5 px-1 py-0.5 font-mono">K</kbd>
+                  <kbd className="rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono">⌘</kbd>
+                  <kbd className="rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono">K</kbd>
                 </motion.div>
               )}
               {inputValue && (
@@ -110,7 +110,7 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                     setInputValue("");
                     inputRef.current?.focus();
                   }}
-                  className={`flex shrink-0 items-center justify-center rounded-full bg-black/5 p-1 text-[var(--text-muted)] hover:bg-black/10 hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
+                  className={`flex shrink-0 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] p-1 text-[var(--text-muted)] hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
                 >
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -129,7 +129,7 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 className="overflow-hidden px-2 pb-1"
               >
-                <div className="flex items-start gap-2.5 rounded-lg bg-[var(--ai-accent-base)]/5 p-3 text-sm ring-1 ring-[var(--ai-accent-base)]/20">
+                <div className="flex items-start gap-2.5 rounded-lg border border-[var(--accent-aurora-end)]/35 bg-[var(--accent-slate-300)] p-3 text-sm">
                   <div className="mt-0.5 flex h-4 w-4 shrink-0 justify-center text-[var(--ai-accent-base)]">
                     ✨
                   </div>

@@ -74,9 +74,9 @@ const reviewStateLabel: Record<WorkSession["reviewState"], string> = {
 };
 
 const reviewMarkerClass: Record<ReviewIssue["priority"], string> = {
-  critical: "bg-[#A06E63]",
-  high: "bg-[var(--accent-slate-600)]",
-  medium: "bg-[var(--accent-slate-500)]",
+  critical: "bg-[var(--category-pink-red)]",
+  high: "bg-[var(--category-orange)]",
+  medium: "bg-[var(--category-cyan)]",
 };
 
 const cycleIssue = (issues: ReviewIssue[], currentIssueId: string | null, direction: 1 | -1) => {
@@ -451,7 +451,7 @@ export default function TimeReportingWorkspace({
       
       {/* Main app content with dimming when a query is active */}
       <div className={`mx-auto flex h-full max-w-[1680px] flex-col gap-4 transition-all duration-500 ${shellPaddingClass} ${nlQuery ? "opacity-95 contrast-125 saturate-50" : ""}`}>
-        <header className="relative overflow-hidden h-[88px] rounded-3xl bg-[var(--bg-shell)]/50 backdrop-blur-3xl ring-1 ring-white/60 px-6 shadow-[0_8px_32px_rgba(82,75,64,0.06)] mt-20">
+        <header className="glass-panel-strong relative mt-20 h-[88px] overflow-hidden rounded-3xl px-6">
           <div className="flex h-full items-center justify-between gap-4">
             <div className="min-w-0 pr-4 flex items-center gap-4">
               <PulseOrb state={orbState} />
@@ -461,43 +461,43 @@ export default function TimeReportingWorkspace({
               </div>
             </div>
 
-            <div className="grid w-[min(940px,100%)] grid-cols-4 gap-3 border-l border-white/40 pl-5">
-              <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
+            <div className="grid w-[min(940px,100%)] grid-cols-4 gap-3 border-l border-[var(--glass-border)] pl-5">
+              <div className="glass-panel group relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:bg-[var(--bg-raised)] hover:-translate-y-0.5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Coverage</p>
-                <p className="mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--text-primary)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" style={{ letterSpacing: "-0.04em" }} data-testid="status-coverage">
+                <p className="mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--text-primary)]" style={{ letterSpacing: "-0.04em" }} data-testid="status-coverage">
                   {Math.round(state.metrics.coverage * 100)}%
                 </p>
               </div>
 
-              <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
+              <div className="glass-panel group relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:bg-[var(--bg-raised)] hover:-translate-y-0.5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Needs Attention</p>
-                <p className={`mt-2 font-display text-3xl font-medium tracking-tight tabular-nums drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${state.metrics.unresolvedCount > 0 ? "text-[#CBAFA4]" : "text-[var(--text-primary)]"}`} style={{ letterSpacing: "-0.04em" }} data-testid="status-unresolved">
+                <p className={`mt-2 font-display text-3xl font-medium tracking-tight tabular-nums ${state.metrics.unresolvedCount > 0 ? "text-[var(--category-pink-red)]" : "text-[var(--text-primary)]"}`} style={{ letterSpacing: "-0.04em" }} data-testid="status-unresolved">
                   {state.metrics.unresolvedCount}
                 </p>
               </div>
 
               <div
-                className="group time-fluid-fill relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:-translate-y-0.5"
+                className="glass-panel group time-fluid-fill relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:-translate-y-0.5"
                 style={{ "--fill-pct": Math.min(state.metrics.trackedHours / state.metrics.targetHours, 1) } as React.CSSProperties}
               >
                 <div className="relative z-10 flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Tracked vs Target</p>
                 </div>
-                <p className="relative z-10 mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--accent-slate-700)] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" style={{ letterSpacing: "-0.04em" }}>
+                <p className="relative z-10 mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--accent-slate-700)]" style={{ letterSpacing: "-0.04em" }}>
                   {formatHours(state.metrics.trackedHours)}
                   <span className="mx-1.5 text-xl font-normal text-[var(--text-muted)]/50" style={{ letterSpacing: "normal" }}>/</span>
                   <span className="text-xl font-normal text-[var(--text-muted)]">{formatHours(state.metrics.targetHours)}</span>
                 </p>
               </div>
 
-              <div className="group relative overflow-hidden rounded-2xl bg-white/40 px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_8px_rgba(82,75,64,0.04)] ring-1 ring-white/50 transition-all hover:bg-white/60 hover:-translate-y-0.5">
+              <div className="glass-panel group relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:bg-[var(--bg-raised)] hover:-translate-y-0.5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Submission State</p>
                 <div className="mt-2 flex items-center gap-2.5">
                   <div className={`h-2.5 w-2.5 rounded-full ${state.metrics.submitReady ? "bg-[var(--accent-slate-500)] shadow-[0_0_12px_var(--accent-slate-500)] animate-pulse" : "bg-[var(--text-muted)]/30"}`} />
                   {state.metrics.submitReady ? (
                     <button 
                       onClick={() => setIsDailySyncOpen(true)}
-                      className="font-display text-3xl font-medium tracking-tight text-[var(--accent-slate-700)] hover:text-black transition-colors"
+                      className="font-display text-3xl font-medium tracking-tight text-[var(--accent-slate-700)] transition-colors hover:text-white"
                     >
                       Sync Ready
                     </button>
@@ -513,13 +513,13 @@ export default function TimeReportingWorkspace({
         </header>
 
         <div className="grid min-h-0 flex-1 grid-cols-[80px_minmax(0,1fr)_320px] gap-4">
-          <section className="min-h-0 rounded-2xl bg-[var(--bg-panel)]/30 backdrop-blur-xl ring-1 ring-white/40 p-2 shadow-[0_2px_8px_rgba(82,75,64,0.03)] overflow-visible">
+          <section className="glass-panel min-h-0 overflow-visible rounded-2xl p-2">
              <ConfidenceTimeline sessions={currentPage.sessions} onAssignProject={handleAssignProject} />
           </section>
 
           <section className="min-h-0 flex flex-col gap-4">
             <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.75fr)_340px] gap-4">
-              <div className="flex min-h-0 flex-col rounded-2xl bg-white/40 p-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_2px_8px_rgba(82,75,64,0.03)] ring-1 ring-white/50">
+              <div className="glass-panel flex min-h-0 flex-col rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-3 px-2 pt-1">
                   <div>
                     <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Session Matrix</h1>
@@ -568,7 +568,7 @@ export default function TimeReportingWorkspace({
                       return (
                         <div
                           key={slot.id}
-                          className="rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--bg-shell)]"
+                          className="rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--glass-surface)]"
                           aria-hidden="true"
                         />
                       );
@@ -582,8 +582,8 @@ export default function TimeReportingWorkspace({
                         onClick={() => activateSession(slot.session!.id)}
                         className={`matrix-slot flex h-full flex-col items-start justify-between rounded-xl px-4 py-3.5 text-left border-0 ${interactiveStateClasses.focus} ${
                           slot.isFocused
-                            ? `matrix-slot--focused bg-white ring-2 ring-[var(--accent-slate-500)] ring-offset-2 ring-offset-[var(--bg-panel)]/50 shadow-[0_8px_24px_rgba(82,75,64,0.08)]`
-                            : `bg-white/50 ring-1 ring-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,1),0_2px_4px_rgba(82,75,64,0.03)]`
+                            ? `matrix-slot--focused bg-[var(--glass-surface-strong)] ring-2 ring-[var(--accent-slate-500)] ring-offset-2 ring-offset-[var(--bg-canvas)] shadow-[var(--glass-shadow-soft)]`
+                            : `bg-[var(--glass-surface)] ring-1 ring-[var(--glass-border)]`
                         }`}
                       >
                         <div className="flex w-full items-start justify-between gap-3">
@@ -593,7 +593,7 @@ export default function TimeReportingWorkspace({
                               const pc = getProjectColor(slot.session.project);
                               return (
                                 <span 
-                                  className="mt-1.5 inline-block rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider font-semibold ring-1 border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                                  className="mt-1.5 inline-block rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ring-1"
                                   style={{
                                     backgroundColor: pc.bgLight,
                                     color: pc.textDark,
@@ -605,12 +605,12 @@ export default function TimeReportingWorkspace({
                               );
                             })()}
                           </div>
-                          <span className="shrink-0 rounded-full bg-black/5 ring-1 ring-black/5 px-2.5 py-1 font-mono text-xs tabular-nums text-[var(--accent-slate-700)] font-medium">
+                          <span className="shrink-0 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1 font-mono text-xs font-medium tabular-nums text-[var(--accent-slate-700)]">
                             {formatHours(slot.session.durationMinutes / 60)}
                           </span>
                         </div>
                         <div className="mt-auto pt-4 w-full text-xs text-[var(--text-secondary)] flex items-center justify-between">
-                          <p className="font-medium bg-[var(--bg-shell)]/80 px-2 py-0.5 rounded text-[11px]">{reviewStateLabel[slot.session.reviewState]}</p>
+                          <p className="rounded bg-[var(--glass-surface)] px-2 py-0.5 text-[11px] font-medium">{reviewStateLabel[slot.session.reviewState]}</p>
                           <p className="font-mono tabular-nums text-[var(--text-muted)]">{formatWindow(slot.session.startedAt, slot.session.endedAt)}</p>
                         </div>
                       </button>
@@ -619,7 +619,7 @@ export default function TimeReportingWorkspace({
                 </div>
               </div>
 
-              <aside className="rounded-2xl bg-[var(--bg-raised)]/80 backdrop-blur-xl p-5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8),0_4px_12px_rgba(82,75,64,0.04)] ring-1 ring-white/60" data-testid="matrix-focus-panel">
+              <aside className="glass-panel min-h-0 rounded-2xl p-5" data-testid="matrix-focus-panel">
                 {focusedSession ? (
                   <div className="flex h-full flex-col">
                     <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Focused Session</p>
@@ -629,7 +629,7 @@ export default function TimeReportingWorkspace({
                         const pc = getProjectColor(focusedSession.project);
                         return (
                           <span 
-                            className="inline-block rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider font-semibold border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                            className="inline-block rounded-full border px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider"
                             style={{
                               backgroundColor: pc.bgLight,
                               color: pc.textDark,
@@ -641,7 +641,7 @@ export default function TimeReportingWorkspace({
                         );
                       })()}
                     </div>
-                    <p className="mt-3 inline-block self-start rounded-md bg-white/60 ring-1 ring-[var(--border-soft)] px-2.5 py-1 font-mono text-sm tabular-nums text-[var(--accent-slate-700)] font-medium">
+                    <p className="mt-3 inline-block self-start rounded-md border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1 font-mono text-sm font-medium tabular-nums text-[var(--accent-slate-700)]">
                       {formatWindow(focusedSession.startedAt, focusedSession.endedAt)} · <span className="opacity-70">{formatHours(focusedSession.durationMinutes / 60)}</span>
                     </p>
                     <p className="mt-8 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)] border-b border-[var(--border-soft)] pb-2 mb-3">Signals</p>
@@ -667,8 +667,8 @@ export default function TimeReportingWorkspace({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border-soft)] bg-white/40 ring-1 ring-white/60 p-6 text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.7)]">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/5 ring-1 ring-black/10 shadow-[inset_0_1px_1px_rgba(255,255,255,1)] mb-4">
+                  <div className="glass-panel flex h-full w-full flex-col items-center justify-center rounded-xl border-dashed p-6 text-center">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)]">
                       <svg className="h-5 w-5 text-[var(--accent-slate-500)] opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
@@ -683,10 +683,10 @@ export default function TimeReportingWorkspace({
             </div>
           </section>
 
-          <aside className="rounded-3xl bg-[var(--bg-panel)]/50 backdrop-blur-3xl ring-1 ring-white/60 p-5 shadow-[0_8px_32px_rgba(82,75,64,0.06)] flex flex-col">
-            <div className="border-b border-white/40 pb-4 mb-4">
+          <aside className="glass-panel-strong flex flex-col rounded-3xl p-5">
+            <div className="mb-4 border-b border-[var(--glass-border)] pb-4">
               <h3 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Review Queue</h3>
-              <p className="mt-1.5 align-middle text-sm text-[var(--text-secondary)]">Use <kbd className="font-mono text-xs bg-black/5 ring-1 ring-black/10 rounded px-1 py-0.5 mx-0.5">↑`/`↓</kbd> to navigate, <kbd className="font-mono text-xs bg-black/5 ring-1 ring-black/10 rounded px-1 py-0.5 mx-0.5">Enter</kbd> to detail.</p>
+              <p className="mt-1.5 align-middle text-sm text-[var(--text-secondary)]">Use <kbd className="mx-0.5 rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono text-xs">↑`/`↓</kbd> to navigate, <kbd className="mx-0.5 rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono text-xs">Enter</kbd> to detail.</p>
             </div>
 
             <ul className="mt-2 space-y-2" data-testid="review-list">
@@ -705,12 +705,12 @@ export default function TimeReportingWorkspace({
                       }}
                       className={`w-full rounded-xl px-3 py-2.5 text-left border-0 transition-all ${interactiveStateClasses.focus} ${
                         isSelected
-                          ? `bg-white shadow-[0_4px_12px_rgba(82,75,64,0.06)] ring-1 ring-[var(--accent-slate-500)]`
-                          : `bg-white/40 ring-1 ring-white/60 hover:bg-white/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7),0_2px_4px_rgba(82,75,64,0.03)] hover:-translate-y-px`
+                          ? `bg-[var(--glass-surface-strong)] shadow-[var(--glass-shadow-soft)] ring-1 ring-[var(--accent-slate-500)]`
+                          : `bg-[var(--glass-surface)] ring-1 ring-[var(--glass-border)] hover:-translate-y-px hover:bg-[var(--bg-raised)]`
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <span className={`mt-1.5 shrink-0 h-2.5 w-2.5 rounded-full ring-1 ring-black/10 ${reviewMarkerClass[item.priority]}`} aria-hidden="true" />
+                        <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-[var(--glass-border)] ${reviewMarkerClass[item.priority]}`} aria-hidden="true" />
                         <div className="min-w-0">
                           <p className="text-[14px] font-semibold tracking-tight leading-tight text-[var(--text-primary)]">{item.title}</p>
                           <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)] opacity-90">{item.hint}</p>
@@ -742,7 +742,7 @@ export default function TimeReportingWorkspace({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="fixed inset-y-0 right-0 z-30 w-[460px] border-l border-white/50 bg-[var(--bg-raised)]/80 backdrop-blur-3xl p-6 shadow-[-16px_0_48px_rgba(82,75,64,0.15)]"
+        className="fixed inset-y-0 right-0 z-30 w-[460px] border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)] p-6 shadow-[-16px_0_48px_rgba(3,4,14,0.5)] backdrop-blur-3xl"
       >
         {drawerSession ? (
           <div className="flex h-full flex-col">
@@ -752,7 +752,7 @@ export default function TimeReportingWorkspace({
                 <h3 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] leading-none" data-testid="drawer-session-title">
                   {drawerSession.summary}
                 </h3>
-                <p className="mt-3 font-mono text-xs tabular-nums text-[var(--accent-slate-600)] bg-white/60 ring-1 ring-white border border-[var(--border-soft)] w-max px-2.5 py-1 rounded-md">{formatWindow(drawerSession.startedAt, drawerSession.endedAt)} · <span className="opacity-70">{formatHours(drawerSession.durationMinutes / 60)}</span></p>
+                <p className="mt-3 w-max rounded-md border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1 font-mono text-xs tabular-nums text-[var(--accent-slate-700)]">{formatWindow(drawerSession.startedAt, drawerSession.endedAt)} · <span className="opacity-70">{formatHours(drawerSession.durationMinutes / 60)}</span></p>
               </div>
               <button
                 type="button"
@@ -793,7 +793,7 @@ export default function TimeReportingWorkspace({
                   step="0.01"
                   value={draftConfidence}
                   onChange={(event) => setDraftConfidence(Number(event.target.value))}
-                  className="w-full accent-[var(--accent-slate-500)]"
+                  className="w-full accent-[var(--accent-aurora-end)]"
                 />
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">{Math.round(draftConfidence * 100)}% confidence</p>
               </div>
@@ -812,7 +812,7 @@ export default function TimeReportingWorkspace({
                 <button
                   type="button"
                   onClick={applyDraftChanges}
-                  className={`rounded-md border px-3 py-2 text-sm ${interactiveStateClasses.active} ${interactiveStateClasses.focus}`}
+                  className={`aurora-cta rounded-md border px-3 py-2 text-sm ${interactiveStateClasses.focus}`}
                 >
                   Apply edits
                 </button>
@@ -827,7 +827,7 @@ export default function TimeReportingWorkspace({
                 <button
                   type="button"
                   onClick={() => dispatch({ type: "resolve_session", sessionId: drawerSession.id })}
-                  className={`rounded-md border px-3 py-2 text-sm ${interactiveStateClasses.active} ${interactiveStateClasses.focus}`}
+                  className={`aurora-cta rounded-md border px-3 py-2 text-sm ${interactiveStateClasses.focus}`}
                 >
                   Resolve session
                 </button>
@@ -844,14 +844,14 @@ export default function TimeReportingWorkspace({
                   transition={{ duration: 0.3 }}
                   className={`rounded-lg border px-3 py-3 ${interactiveStateClasses.info}`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-slate-700)]">AI rationale</p>
-                  <p className="mt-2 text-sm text-[var(--accent-slate-700)]">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#9FEAF2]">AI rationale</p>
+                  <p className="mt-2 text-sm text-[#BFEFF5]">
                     <Typewriter text={drawerExplanation.rationale} speed={18} />
                   </p>
-                  <p className="mt-2 text-xs tabular-nums text-[var(--accent-slate-700)]">
+                  <p className="mt-2 text-xs tabular-nums text-[#9FEAF2]">
                     Confidence: {Math.round(drawerExplanation.confidence * 100)}%
                   </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[var(--accent-slate-700)]">
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[#9FEAF2]">
                     {drawerExplanation.factors.map((factor) => (
                       <li key={factor}>{factor}</li>
                     ))}
