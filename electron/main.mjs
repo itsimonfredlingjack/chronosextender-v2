@@ -7,6 +7,9 @@ import { explainSessionWithMode } from "./assistant-service.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
 const aiMode = process.env.CHRONOS_AI_MODE === "ollama" ? "ollama" : "mock";
+const rendererHost = process.env.CHRONOS_RENDERER_HOST ?? "127.0.0.1";
+const rendererPort = process.env.CHRONOS_RENDERER_PORT ?? "5183";
+const devServerURL = `http://${rendererHost}:${rendererPort}`;
 
 let mainWindow = null;
 
@@ -51,7 +54,7 @@ const createMainWindow = async () => {
   });
 
   if (isDev) {
-    await window.loadURL("http://127.0.0.1:5173");
+    await window.loadURL(devServerURL);
   } else {
     await window.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   }

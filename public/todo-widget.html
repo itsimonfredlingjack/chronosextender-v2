@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chronos Workspace</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        padding: 14px;
+        background: #f2efe6;
+        color: #2f2b24;
+        font-family: "SF Pro Text", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+
+      .panel {
+        background: #fff;
+        border: 1px solid #d8d2c1;
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 16px;
+        letter-spacing: 0.01em;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .chip {
+        border: 1px solid #ddd4bf;
+        background: #fbf9f4;
+        border-radius: 10px;
+        padding: 8px;
+      }
+
+      .chip-label {
+        display: block;
+        font-size: 11px;
+        opacity: 0.72;
+        margin-bottom: 4px;
+      }
+
+      .chip-value {
+        font-weight: 650;
+        font-size: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+
+      th,
+      td {
+        text-align: left;
+        border-bottom: 1px solid #eee7d7;
+        padding: 7px 4px;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 11px;
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .review {
+        font-size: 12px;
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .review li {
+        margin: 5px 0;
+      }
+
+      .muted {
+        opacity: 0.65;
+      }
+
+      .status {
+        margin-top: 8px;
+        font-size: 11px;
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="panel">
+      <h1>Chronos Workspace</h1>
+      <div class="meta">
+        <div class="chip">
+          <span class="chip-label">Tracked</span>
+          <span class="chip-value" id="tracked">-</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">Unresolved</span>
+          <span class="chip-value" id="unresolved">-</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">Coverage</span>
+          <span class="chip-value" id="coverage">-</span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Session</th>
+            <th>Project</th>
+            <th>State</th>
+            <th>Hours</th>
+          </tr>
+        </thead>
+        <tbody id="sessions"></tbody>
+      </table>
+
+      <p class="muted" style="margin: 0 0 6px"><strong>Review queue</strong></p>
+      <ul class="review" id="review"></ul>
+
+      <div class="status" id="status">Awaiting tool result…</div>
+    </section>
+
+    <script>
+      const trackedEl = document.getElementById("tracked");
+      const unresolvedEl = document.getElementById("unresolved");
+      const coverageEl = document.getElementById("coverage");
+      const sessionsEl = document.getElementById("sessions");
+      const reviewEl = document.getElementById("review");
+      const statusEl = document.getElementById("status");
+
+      function safeText(value, fallback = "-") {
+        if (value === null || typeof value === "undefined" || value === "") {
+          return fallback;
+        }
+        return String(value);
+      }
+
+      function renderWorkspace(workspace) {
+        const metrics = workspace?.metrics ?? {};
+        const sessions = Array.isArray(workspace?.sessions) ? workspace.sessions : [];
+        const queue = Array.isArray(workspace?.reviewQueue) ? workspace.reviewQueue : [];
+
+        trackedEl.textContent = `${safeText(metrics.trackedHours, 0)}h / ${safeText(metrics.targetHours, 0)}h`;
+        unresolvedEl.textContent = safeText(metrics.unresolvedCount, 0);
+        coverageEl.textContent = `${Math.round((Number(metrics.coverage ?? 0) || 0) * 100)}%`;
+
+        sessionsEl.innerHTML = "";
+        for (const session of sessions) {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${safeText(session.summary)}</td>
+            <td>${safeText(session.project, "Unassigned")}</td>
+            <td>${safeText(session.reviewState)}</td>
+            <td>${(Number(session.durationMinutes ?? 0) / 60).toFixed(1)}h</td>
+          `;
+          sessionsEl.appendChild(row);
+        }
+
+        reviewEl.innerHTML = "";
+        if (queue.length === 0) {
+          const item = document.createElement("li");
+          item.textContent = "No open review issues.";
+          reviewEl.appendChild(item);
+        } else {
+          for (const issue of queue.slice(0, 8)) {
+            const item = document.createElement("li");
+            item.textContent = `${issue.priority.toUpperCase()} - ${issue.sessionId}: ${issue.title}`;
+            reviewEl.appendChild(item);
+          }
+        }
+
+        statusEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      }
+
+      function applyToolResult(resultLike) {
+        const workspace = resultLike?.structuredContent?.workspace;
+        if (!workspace) return;
+        renderWorkspace(workspace);
+      }
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          if (event.source !== window.parent) return;
+          const message = event.data;
+          if (!message || message.jsonrpc !== "2.0") return;
+
+          if (message.method === "ui/notifications/tool-result") {
+            applyToolResult(message.params);
+            return;
+          }
+
+          if (message.method === "ui/notifications/tool-input") {
+            statusEl.textContent = "Tool input received";
+          }
+        },
+        { passive: true },
+      );
+
+      if (window.openai?.toolOutput?.workspace) {
+        renderWorkspace(window.openai.toolOutput.workspace);
+      }
+    </script>
+  </body>
+</html>

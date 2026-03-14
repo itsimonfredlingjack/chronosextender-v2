@@ -73,9 +73,9 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
           const top = (i * 60 / TOTAL_MINUTES) * 100;
           return (
             <div key={hour} className="absolute inset-x-0 z-0" style={{ top: `${top}%` }}>
-              <div className="border-t border-white/10" />
+              <div className="border-t border-white/8" />
               {hour % 3 === 0 && (
-                <span className="absolute left-1 top-0.5 select-none font-mono text-[8px] leading-none text-white/40">
+                <span className="absolute left-1.5 top-1 select-none font-mono text-[10px] leading-none text-[var(--text-muted)]">
                   {hour}
                 </span>
               )}
@@ -113,11 +113,11 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
             >
               <div
                 className={`h-full w-full rounded-lg transition-all duration-200 ${
-                  hovered && !isHigh ? "scale-105 shadow-md" : ""
+                  hovered && !isHigh ? "scale-[1.03]" : ""
                 }`}
                 style={{
                   backgroundColor: colors.bg,
-                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 5px ${colors.ring}`,
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), 0 3px 10px ${withAlpha(colors.ring, 0.22)}`,
                   border: `1px solid ${colors.ring}`,
                   ...(isLow && colors.stripeBase
                     ? {
@@ -129,7 +129,7 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
               >
                 {/* Inline confidence % label when block is tall enough */}
                 {height > 6 && (
-                  <span className="block px-1 pt-1 font-mono text-[9px] font-bold leading-none text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]">
+                  <span className="block px-1.5 pt-1.5 font-mono text-[10px] font-bold leading-none text-white/90">
                     {confidencePercent}%
                   </span>
                 )}
@@ -142,11 +142,11 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: -4, scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                    className="glass-panel-strong absolute left-full top-1/2 z-50 ml-3 w-52 -translate-y-1/2 rounded-xl p-3"
+                    className="glass-panel-strong absolute left-full top-1/2 z-50 ml-3 w-52 -translate-y-1/2 rounded-xl p-3 shadow-[var(--glass-shadow)]"
                   >
-                    <div className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)]" />
+                    <div className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-[var(--border-subtle)] bg-[var(--surface-glass-strong)]" />
 
-                    <p className="relative z-10 text-[11px] font-medium leading-snug text-[var(--text-primary)]">
+                    <p className="relative z-10 text-[11px] font-ui font-medium leading-5 text-[var(--text-primary)]">
                       <span className="font-mono font-bold">{confidencePercent}%</span> confident — which project?
                     </p>
 
@@ -155,10 +155,10 @@ export function ConfidenceTimeline({ sessions, onAssignProject }: ConfidenceTime
                         <button
                           key={alt}
                           onClick={() => onAssignProject(session.id, alt)}
-                          className="flex w-full items-center justify-between rounded-md border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-primary)] transition-all hover:-translate-y-px hover:border-[var(--glass-border-bright)] hover:bg-[var(--bg-raised)]"
+                          className="flex w-full items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-2.5 py-2 text-left font-ui text-[11px] font-medium text-[var(--text-primary)] transition-[background-color,border-color] duration-200 hover:border-[var(--border-active)] hover:bg-[var(--surface-glass-hover)]"
                         >
                           <span className="truncate">{alt}</span>
-                          <span className="ml-1.5 shrink-0 text-[9px] font-bold uppercase text-[var(--ai-accent-base)]">Set</span>
+                          <span className="ml-1.5 shrink-0 text-[10px] font-mono font-bold uppercase text-[var(--text-primary)]">Set</span>
                         </button>
                       ))}
                     </div>

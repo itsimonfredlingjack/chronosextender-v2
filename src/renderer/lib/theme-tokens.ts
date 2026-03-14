@@ -20,44 +20,63 @@ export interface ThemeTokens {
   accentSlate600: string;
   accentSlate700: string;
   focusRing: string;
-  categoryGreen: string;
-  categoryPinkRed: string;
-  categoryOrange: string;
-  categoryCyan: string;
-  criticalBg: string;
-  criticalBorder: string;
-  criticalText: string;
+  categorySuccess: string;
+  categoryFormal: string;
+  categoryFinancial: string;
+  categorySummary: string;
+  categoryNeutral: string;
+  categoryMedia: string;
+  surfaceCanvas: string;
+  surfaceGlass: string;
+  surfaceGlassStrong: string;
+  surfaceGlassHover: string;
+  borderSubtle: string;
+  borderActive: string;
+  highlightInner: string;
 }
 
 export const themeTokens: ThemeTokens = {
-  bgCanvas: "#111118",
-  bgApp: "#111118",
-  bgShell: "rgba(255, 255, 255, 0.05)",
-  bgPanel: "rgba(255, 255, 255, 0.06)",
-  bgRaised: "rgba(255, 255, 255, 0.10)",
-  borderDefault: "rgba(255, 255, 255, 0.16)",
-  borderSoft: "rgba(255, 255, 255, 0.24)",
-  textPrimary: "#FFFFFF",
-  textSecondary: "rgba(236, 240, 255, 0.78)",
-  textMuted: "rgba(210, 216, 236, 0.58)",
-  glassSurface: "rgba(255, 255, 255, 0.06)",
-  glassSurfaceStrong: "rgba(255, 255, 255, 0.10)",
-  glassBorder: "rgba(255, 255, 255, 0.18)",
-  glassBorderBright: "rgba(255, 255, 255, 0.28)",
-  accentAuroraStart: "#5856D6",
-  accentAuroraEnd: "#AF52DE",
-  accentSlate300: "rgba(88, 86, 214, 0.24)",
-  accentSlate500: "#5856D6",
-  accentSlate600: "#7F61DF",
-  accentSlate700: "#D0BBF6",
-  focusRing: "rgba(175, 82, 222, 0.55)",
-  categoryGreen: "#34C759",
-  categoryPinkRed: "#FF375F",
-  categoryOrange: "#FF9F0A",
-  categoryCyan: "#30B0C7",
-  criticalBg: "rgba(255, 55, 95, 0.18)",
-  criticalBorder: "rgba(255, 55, 95, 0.55)",
-  criticalText: "#FF8CA4",
+  bgCanvas: "#0B0F14",
+  bgApp: "#0F141B",
+  bgShell: "rgba(255, 255, 255, 0.03)",
+  bgPanel: "rgba(255, 255, 255, 0.045)",
+  bgRaised: "rgba(255, 255, 255, 0.075)",
+  borderDefault: "rgba(173, 185, 214, 0.14)",
+  borderSoft: "rgba(193, 203, 229, 0.22)",
+  textPrimary: "#f5f7fb",
+  textSecondary: "rgba(223, 230, 245, 0.76)",
+  textMuted: "rgba(179, 190, 214, 0.68)",
+  
+  // Tactical Canvas Canvas / Glass Surfaces
+  surfaceCanvas: "#090a0c",
+  surfaceGlass: "rgba(18, 20, 26, 0.6)",
+  surfaceGlassStrong: "rgba(12, 14, 18, 0.8)",
+  surfaceGlassHover: "rgba(30, 34, 42, 0.65)",
+  
+  // Borders
+  borderSubtle: "rgba(255, 255, 255, 0.04)",
+  borderActive: "rgba(255, 255, 255, 0.15)",
+  highlightInner: "rgba(255, 255, 255, 0.06)",
+  
+  // Legacy mappings for stability (can be removed if all components updated)
+  glassSurface: "rgba(18, 20, 26, 0.6)",
+  glassSurfaceStrong: "rgba(12, 14, 18, 0.8)",
+  glassBorder: "rgba(255, 255, 255, 0.04)",
+  glassBorderBright: "rgba(255, 255, 255, 0.12)",
+  
+  accentAuroraStart: "#5D71CF",
+  accentAuroraEnd: "#7D8DE0",
+  accentSlate300: "rgba(93, 113, 207, 0.18)",
+  accentSlate500: "#6F84E8",
+  accentSlate600: "#95A6F2",
+  accentSlate700: "#D9E1FF",
+  focusRing: "rgba(111, 132, 232, 0.42)",
+  categorySuccess: "#34C759",    // green - verified, receipt
+  categoryFormal: "#5D5CE6",     // violet/blue-violet - legal, formal
+  categoryFinancial: "#FF375F",  // magenta/red - financial, invoice
+  categorySummary: "#FF9F0A",    // orange - summary, meetings
+  categoryNeutral: "#8E8E93",    // gray - neutral, analysis
+  categoryMedia: "#30B0C7",      // cyan - media, signal
 };
 
 export const themeTokenSpec = {
@@ -81,21 +100,29 @@ export const themeTokenSpec = {
   "accent.slate.500": themeTokens.accentSlate500,
   "accent.slate.600": themeTokens.accentSlate600,
   "accent.slate.700": themeTokens.accentSlate700,
-  "category.green": themeTokens.categoryGreen,
-  "category.pink-red": themeTokens.categoryPinkRed,
-  "category.orange": themeTokens.categoryOrange,
-  "category.cyan": themeTokens.categoryCyan,
+  "category.success": themeTokens.categorySuccess,
+  "category.formal": themeTokens.categoryFormal,
+  "category.financial": themeTokens.categoryFinancial,
+  "category.summary": themeTokens.categorySummary,
+  "category.neutral": themeTokens.categoryNeutral,
+  "category.media": themeTokens.categoryMedia,
+  "surface.canvas": themeTokens.surfaceCanvas,
+  "surface.glass": themeTokens.surfaceGlass,
+  "surface.glass.strong": themeTokens.surfaceGlassStrong,
+  "surface.glass.hover": themeTokens.surfaceGlassHover,
+  "border.subtle": themeTokens.borderSubtle,
   "focus.ring": themeTokens.focusRing,
 } as const;
 
 export const interactiveStateClasses = {
   default:
-    "border-[var(--border-default)] bg-[var(--bg-panel)] text-[var(--text-secondary)]",
-  hover: "hover:border-[var(--border-soft)] hover:bg-[var(--bg-raised)]",
+    "border-[var(--border-subtle)] bg-[var(--surface-glass)] text-[var(--text-secondary)] transition-[background-color,border-color,color,transform,box-shadow,filter] duration-200 ease-out",
+  hover:
+    "hover:border-[var(--border-active)] hover:bg-[var(--surface-glass-hover)] hover:text-[var(--text-primary)]",
   active:
-    "border-[var(--accent-aurora-start)] bg-[var(--accent-slate-300)] text-[var(--text-primary)]",
+    "border-[var(--accent-slate-500)]/40 bg-[var(--surface-glass-strong)] text-[var(--text-primary)] shadow-[var(--glass-shadow-soft)]",
   focus:
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-canvas)]",
-  info: "border-[var(--category-cyan)]/50 bg-[var(--category-cyan)]/15 text-[#9FEAF2]",
-  critical: "border-[var(--critical-border)] bg-[var(--critical-bg)] text-[var(--critical-text)]",
+    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-0",
+  info: "border-l-2 border-[var(--category-media)] bg-[var(--surface-glass)] text-[var(--text-primary)]",
+  critical: "border-l-2 border-[var(--category-financial)] bg-[var(--surface-glass-strong)] text-[var(--category-financial)]",
 } as const;

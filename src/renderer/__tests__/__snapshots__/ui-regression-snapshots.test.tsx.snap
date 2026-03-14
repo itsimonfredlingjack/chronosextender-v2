@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ui regression snapshots > keeps drawer visual class contract stable 1`] = `"fixed inset-y-0 right-0 z-30 w-[460px] border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)] p-6 shadow-[-16px_0_40px_rgba(3,4,14,0.34)] backdrop-blur-3xl"`;
+
+exports[`ui regression snapshots > keeps drawer visual class contract stable 2`] = `"rounded-xl border px-3.5 py-2 text-sm font-medium border-[var(--border-default)] bg-[var(--bg-panel)] text-[var(--text-secondary)] transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out hover:border-[var(--border-soft)] hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-canvas)]"`;
+
+exports[`ui regression snapshots > keeps drawer visual class contract stable 3`] = `"aurora-cta rounded-xl border px-4 py-2.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-canvas)]"`;
+
+exports[`ui regression snapshots > keeps header and timeline visual class contracts stable 1`] = `"glass-panel-strong relative h-[92px] overflow-hidden rounded-2xl px-6"`;
+
+exports[`ui regression snapshots > keeps header and timeline visual class contracts stable 2`] = `"glass-panel min-h-0 overflow-visible rounded-2xl p-2"`;

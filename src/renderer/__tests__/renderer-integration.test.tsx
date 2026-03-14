@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import TimeReportingWorkspace from "../components/TimeReportingWorkspace";
 import type { ChronosRuntimeBridge } from "../lib/runtime";
@@ -65,7 +65,33 @@ const overflowEvents: ActivityEvent[] = Array.from({ length: 7 }, (_, index) => 
   } satisfies ActivityEvent;
 });
 
+const syncReadyEvents: ActivityEvent[] = [
+  {
+    id: "evt-sync-1",
+    startedAt: "2026-03-05T09:00:00.000Z",
+    endedAt: "2026-03-05T11:30:00.000Z",
+    appName: "Cursor",
+    windowTitle: "Delivery work",
+    summary: "Finalize deliverables",
+    projectHint: "Chronos",
+    signals: ["delivery", "planning"],
+    source: "ai",
+    confidence: 0.93,
+    billable: true,
+  },
+];
+
 describe("renderer integration", () => {
+  it("exposes accessible labels for search and drawer close controls", async () => {
+    render(<TimeReportingWorkspace events={integrationEvents} runtime={integrationRuntime} targetHours={4} />);
+
+    expect(screen.getByRole("textbox", { name: /ask chronos/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("review-item-issue-session-1"));
+
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
+
   it("opens matching session context from review selection", async () => {
     render(<TimeReportingWorkspace events={integrationEvents} runtime={integrationRuntime} targetHours={4} />);
 
@@ -115,6 +141,25 @@ describe("renderer integration", () => {
     await userEvent.click(screen.getByTestId("matrix-slot-session-2"));
     await userEvent.click(screen.getByRole("button", { name: "Open details" }));
 
-    expect(screen.getByText("45% confidence")).toBeInTheDocument();
+    expect(screen.getAllByText("45% confidence").length).toBeGreaterThan(0);
+  });
+
+  it("uses copy-to-clipboard wording in the daily sync modal", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(<TimeReportingWorkspace events={syncReadyEvents} runtime={integrationRuntime} targetHours={1} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Sync Ready" }));
+
+    const copyButton = screen.getByRole("button", { name: /copy to clipboard/i });
+    expect(copyButton).toBeInTheDocument();
+
+    await userEvent.click(copyButton);
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: /copied!/i })).toBeInTheDocument();
   });
 });

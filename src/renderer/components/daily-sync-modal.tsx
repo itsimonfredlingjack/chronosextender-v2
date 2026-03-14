@@ -41,8 +41,8 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+            transition={{ duration: 0.22 }}
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
             onClick={onClose}
           />
 
@@ -51,11 +51,11 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="glass-panel-strong relative flex w-full max-w-xl flex-col overflow-hidden rounded-3xl p-6"
+            className="glass-panel-strong relative flex w-full max-w-xl flex-col overflow-hidden rounded-2xl p-6"
           >
             <div className="flex items-start justify-between border-b border-[var(--border-soft)] pb-4">
               <div>
-                <p className="font-display text-xs font-bold uppercase tracking-[0.15em] text-[var(--ai-accent-base)]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ai-accent-base)]">
                   End of Day Recap
                 </p>
                 <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
@@ -65,7 +65,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
               <button
                 type="button"
                 onClick={onClose}
-                className={`flex h-8 w-8 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[rgba(255,255,255,0.03)] text-[var(--text-secondary)] transition-colors duration-200 hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -76,7 +76,7 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
             <div className="glass-panel mt-6 min-h-[120px] rounded-2xl p-5">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 shrink-0 text-xl">✨</span>
-                <p className="text-[15px] leading-relaxed text-[var(--text-primary)]">
+                <p className="text-[15px] leading-7 text-[var(--text-primary)]">
                   {isOpen ? <Typewriter text={story} speed={25} /> : null}
                 </p>
               </div>
@@ -86,10 +86,10 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
               <button
                 type="button"
                 onClick={handleCopy}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors duration-200 ${
                   isCopied
                     ? "border border-[var(--category-green)]/40 bg-[var(--category-green)]/15 text-[var(--category-green)]"
-                    : `border border-[var(--glass-border)] bg-[var(--glass-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-raised)] ${interactiveStateClasses.focus}`
+                    : `border border-[var(--glass-border)] bg-[rgba(255,255,255,0.03)] text-[var(--text-primary)] hover:bg-[var(--bg-raised)] ${interactiveStateClasses.focus}`
                 }`}
               >
                 {isCopied ? (
@@ -97,21 +97,21 @@ export function DailySyncModal({ isOpen, onClose, sessions }: DailySyncModalProp
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Copied
+                    Copied!
                   </>
                 ) : (
                   <>
                     <svg className="h-4 w-4 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    Export to Slack
+                    Copy to clipboard
                   </>
                 )}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className={`aurora-cta rounded-xl px-5 py-2 text-sm font-medium ${interactiveStateClasses.focus}`}
+                className={`aurora-cta rounded-xl px-5 py-2.5 text-sm font-medium ${interactiveStateClasses.focus}`}
               >
                 Complete Sync
               </button>

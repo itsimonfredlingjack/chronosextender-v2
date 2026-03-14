@@ -5,18 +5,24 @@
   "type": "module",
   "main": "electron/main.mjs",
   "scripts": {
-    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev": "node scripts/dev.mjs",
     "dev:renderer": "vite",
-    "dev:electron": "wait-on tcp:5173 && electron .",
+    "dev:electron": "wait-on tcp:${CHRONOS_RENDERER_PORT:-5183} && electron .",
+    "apps:dev": "node server.js",
+    "apps:inspect": "npx @modelcontextprotocol/inspector@latest --server-url http://localhost:8787/mcp --transport http",
     "build": "vite build",
     "test": "vitest run",
+    "test:ui-quality": "vitest run src/renderer/__tests__/ui-regression-snapshots.test.tsx src/renderer/__tests__/design-token-guard.test.ts src/renderer/__tests__/renderer-integration.test.tsx src/renderer/__tests__/theme-tokens.test.ts",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.20.2",
     "framer-motion": "^12.35.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.13",

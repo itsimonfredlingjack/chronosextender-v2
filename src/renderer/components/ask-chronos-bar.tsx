@@ -45,8 +45,8 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[2px]"
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-40 bg-black/28 backdrop-blur-[1.5px]"
             onClick={() => inputRef.current?.blur()}
           />
         )}
@@ -55,17 +55,17 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
       <div className="relative z-50 flex w-full flex-col justify-start">
         <motion.div
           animate={{
-            scale: isFocused ? 1.01 : 1,
-            y: isFocused ? 2 : 0,
+            scale: isFocused ? 1.008 : 1,
+            y: isFocused ? 1 : 0,
           }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className={`relative mx-auto w-full max-w-3xl rounded-2xl p-1.5 transition-all duration-300 ${
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+          className={`relative mx-auto w-full max-w-3xl rounded-2xl p-1.5 transition-[background-color,border-color,box-shadow,transform,filter] duration-200 ease-out focus-within:ring-1 focus-within:ring-[var(--focus-ring)] focus-within:ring-offset-0 ${
             isFocused
-              ? "glass-panel-strong"
-              : "glass-panel hover:bg-[var(--glass-surface-strong)]"
+              ? "glass-panel-strong shadow-[var(--glass-shadow)]"
+              : "glass-panel hover:bg-[var(--surface-glass-hover)]"
           }`}
         >
-          <div className="glass-chip flex w-full items-center gap-2 rounded-xl px-4 py-3">
+          <div className="flex w-full items-center gap-3 rounded-xl px-4 py-3 bg-[var(--surface-subtle)] ring-1 ring-inset ring-[var(--border-subtle)]">
             {/* Search Icon / Loader */}
             <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--text-secondary)]">
               {isProcessing ? (
@@ -82,12 +82,13 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
             <input
               ref={inputRef}
               type="text"
+              aria-label="Ask Chronos — filter timeline"
               value={inputValue}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Ask Chronos to filter your timeline (e.g. 'linear sessions last Tuesday')..."
-              className="flex-1 bg-transparent text-[15px] font-medium text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+              className="flex-1 bg-transparent text-[15px] font-ui font-medium leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
             />
 
             {/* Hint / Hotkey */}
@@ -97,10 +98,10 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex shrink-0 items-center gap-1 text-[10px] font-medium text-[var(--text-muted)]"
+                  className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-[var(--text-muted)]"
                 >
-                  <kbd className="rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono">⌘</kbd>
-                  <kbd className="rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono">K</kbd>
+                  <kbd className="rounded-md border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono">⌘</kbd>
+                  <kbd className="rounded-md border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-1.5 py-0.5 font-mono">K</kbd>
                 </motion.div>
               )}
               {inputValue && (
@@ -110,7 +111,7 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                     setInputValue("");
                     inputRef.current?.focus();
                   }}
-                  className={`flex shrink-0 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] p-1 text-[var(--text-muted)] hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
+                  className={`flex shrink-0 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-glass-hover)] hover:text-[var(--text-primary)] ${interactiveStateClasses.focus}`}
                 >
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -129,11 +130,11 @@ export function AskChronosBar({ onQueryChange, isProcessing, nlSummary }: AskChr
                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 className="overflow-hidden px-2 pb-1"
               >
-                <div className="flex items-start gap-2.5 rounded-lg border border-[var(--accent-aurora-end)]/35 bg-[var(--accent-slate-300)] p-3 text-sm">
-                  <div className="mt-0.5 flex h-4 w-4 shrink-0 justify-center text-[var(--ai-accent-base)]">
+                <div className="flex items-start gap-2.5 rounded-xl border border-[var(--category-media)]/30 bg-[var(--surface-subtle)] p-3.5 text-sm">
+                  <div className="mt-0.5 flex h-4 w-4 shrink-0 justify-center text-[var(--category-media)]">
                     ✨
                   </div>
-                  <p className="font-medium leading-relaxed text-[var(--text-primary)]">
+                  <p className="font-ui font-medium leading-6 text-[var(--text-primary)]">
                     {nlSummary}
                   </p>
                 </div>

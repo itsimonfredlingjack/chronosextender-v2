@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 import { seedActivityEvents } from "../lib/fixtures";
 import { getChronosRuntimeBridge, type ChronosRuntimeBridge } from "../lib/runtime";
@@ -73,10 +73,46 @@ const reviewStateLabel: Record<WorkSession["reviewState"], string> = {
   resolved: "Resolved",
 };
 
+const reviewStateClass: Record<WorkSession["reviewState"], string> = {
+  pending: "border-[var(--category-summary)]/30 bg-[var(--category-summary)]/10 text-[var(--category-summary)]",
+  edited: "border-[var(--category-neutral)]/30 bg-[var(--surface-subtle)] text-[var(--text-secondary)]",
+  resolved: "border-[var(--category-success)]/30 bg-[var(--category-success)]/10 text-[var(--category-success)]",
+};
+
 const reviewMarkerClass: Record<ReviewIssue["priority"], string> = {
-  critical: "bg-[var(--category-pink-red)]",
-  high: "bg-[var(--category-orange)]",
-  medium: "bg-[var(--category-cyan)]",
+  critical: "bg-[var(--category-financial)]",
+  high: "bg-[var(--category-summary)]",
+  medium: "bg-[var(--category-media)]",
+};
+
+const reviewPriorityClass: Record<ReviewIssue["priority"], string> = {
+  critical: "border-[var(--category-financial)]/50 bg-[var(--category-financial)]/15 text-[var(--category-financial)]",
+  high: "border-[var(--category-summary)]/30 bg-[var(--category-summary)]/10 text-[var(--category-summary)]",
+  medium: "border-[var(--category-media)]/30 bg-[var(--category-media)]/15 text-[var(--category-media)]",
+};
+
+const reviewPriorityRingClass: Record<ReviewIssue["priority"], string> = {
+  critical: "ring-[var(--category-financial)]/45",
+  high: "ring-[var(--category-summary)]/45",
+  medium: "ring-[var(--category-media)]/45",
+};
+
+const reviewPriorityLabel: Record<ReviewIssue["priority"], string> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+};
+
+const getConfidenceClass = (confidence: number) => {
+  if (confidence >= 0.8) {
+    return "border-[var(--category-success)]/30 bg-[var(--category-success)]/10 text-[var(--category-success)]";
+  }
+
+  if (confidence >= 0.55) {
+    return "border-[var(--category-formal)]/30 bg-[var(--category-formal)]/10 text-[var(--text-primary)]";
+  }
+
+  return "border-[var(--category-summary)]/30 bg-[var(--category-summary)]/10 text-[var(--category-summary)]";
 };
 
 const cycleIssue = (issues: ReviewIssue[], currentIssueId: string | null, direction: 1 | -1) => {
@@ -110,6 +146,7 @@ export default function TimeReportingWorkspace({
   runtime,
   targetHours = 38,
 }: TimeReportingWorkspaceProps) {
+  const prefersReducedMotion = useReducedMotion();
   const bridge = useMemo(() => runtime ?? getChronosRuntimeBridge(), [runtime]);
   const [baseState, dispatch] = useReducer(
     applyResolution,
@@ -122,27 +159,30 @@ export default function TimeReportingWorkspace({
   const [isDailySyncOpen, setIsDailySyncOpen] = useState(false);
 
   const state = useMemo(() => {
-    // 1. Mock confidence injection
     const sessionsWithConfidence = injectMockConfidence(baseState.sessions);
-    
-    // 2. Natural Language Filtering (Mock Logic)
-    let filteredSessions = sessionsWithConfidence;
-    if (nlQuery.trim().length > 0) {
-      const q = nlQuery.toLowerCase();
-      filteredSessions = sessionsWithConfidence.filter(s => {
-        // A simple text match against project or summary to simulate AI understanding
-        return (s.project?.toLowerCase().includes(q)) || (s.summary.toLowerCase().includes(q));
-      });
+
+    const normalizedQuery = nlQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return {
+        ...baseState,
+        sessions: sessionsWithConfidence,
+      };
     }
 
-    // Rebuild a new pseudo-state based on the filtered sessions
+    const filteredSessions = sessionsWithConfidence.filter((session) => (
+      session.project?.toLowerCase().includes(normalizedQuery)
+      || session.summary.toLowerCase().includes(normalizedQuery)
+    ));
+
     const pseudoState = createWorkspaceState(events, { targetHours, gapMinutes: 32 });
-    
-    // We overwrite the sessions and recompute metrics so the header stats reflect the slice
-    const trackedStats = filteredSessions.reduce((acc, s) => {
-      acc.tracked += s.durationMinutes / 60;
-      if (s.reviewState === "resolved") acc.resolved++;
-      else acc.unresolved++;
+    const trackedStats = filteredSessions.reduce((acc, session) => {
+      acc.tracked += session.durationMinutes / 60;
+      if (session.reviewState === "resolved") {
+        acc.resolved += 1;
+      } else {
+        acc.unresolved += 1;
+      }
       return acc;
     }, { tracked: 0, resolved: 0, unresolved: 0 });
 
@@ -151,15 +191,16 @@ export default function TimeReportingWorkspace({
       trackedHours: trackedStats.tracked,
       unresolvedCount: trackedStats.unresolved,
       submitReady: trackedStats.unresolved === 0 && filteredSessions.length > 0,
-      coverage: trackedStats.tracked / targetHours, // simplified coverage
+      coverage: trackedStats.tracked / targetHours,
     };
 
     return {
       ...baseState,
       sessions: filteredSessions,
-      metrics: nlQuery ? updatedMetrics : baseState.metrics,
-      // We also need to re-derive the review queue for only these sessions
-      reviewQueue: baseState.reviewQueue.filter(issue => filteredSessions.some(s => s.id === issue.sessionId))
+      metrics: updatedMetrics,
+      reviewQueue: baseState.reviewQueue.filter((issue) =>
+        filteredSessions.some((session) => session.id === issue.sessionId),
+      ),
     };
   }, [baseState, events, targetHours, nlQuery]);
 
@@ -176,13 +217,12 @@ export default function TimeReportingWorkspace({
     
     const delay = setTimeout(() => {
       const h = state.metrics.trackedHours.toFixed(1);
-      const proj = state.sessions[0]?.project ?? "the selected project";
       setNlSummary(`You logged ${h} hours for this context. I have filtered your timeline and review queue to show only relevant sessions.`);
       setIsAiFiltering(false);
     }, 800);
 
     return () => clearTimeout(delay);
-  }, [nlQuery, state.metrics.trackedHours, state.sessions]);
+  }, [nlQuery, state.metrics.trackedHours, state.sessions.length]);
 
   // Simulation: Proactive Friction Nudge
   const [showAiNudge, setShowAiNudge] = useState(false);
@@ -233,6 +273,8 @@ export default function TimeReportingWorkspace({
 
   const selectedIssue = state.reviewQueue.find((issue) => issue.id === state.selectedIssueId) ?? null;
   const focusedSession = state.sessions.find((session) => session.id === focusedSessionId) ?? null;
+  const focusedIssue =
+    state.reviewQueue.find((issue) => issue.sessionId === focusedSession?.id) ?? null;
   const drawerSessionId = state.drawerSessionId ?? selectedIssue?.sessionId ?? focusedSessionId ?? null;
   const drawerSession = state.sessions.find((session) => session.id === drawerSessionId) ?? null;
   const drawerExplanation = drawerSession ? aiBySession[drawerSession.id] : undefined;
@@ -428,108 +470,144 @@ export default function TimeReportingWorkspace({
   };
 
   const neutralControl = `${interactiveStateClasses.default} ${interactiveStateClasses.hover} ${interactiveStateClasses.focus}`;
+  const microLabelClass = "text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]";
+  const helperTextClass = "text-[13px] leading-5 text-[var(--text-secondary)]";
+  const queueProgress =
+    state.metrics.totalSessions === 0 ? 1 : state.metrics.resolvedCount / state.metrics.totalSessions;
+  const surfaceTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
+  const contentTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const };
+  const drawerTransition = prefersReducedMotion
+    ? { duration: 0.16 }
+    : { type: "spring" as const, damping: 26, stiffness: 230, mass: 0.92 };
   const shellPaddingClass =
-    runtimePlatform === "darwin" ? "px-4 pb-4 pt-[52px]" : "p-4";
+    runtimePlatform === "darwin" ? "px-4 pb-4 pt-0" : "p-4";
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-primary)] antialiased transition-colors duration-500">
-      
-      {/* Ask Chronos Bar - Floating Layer */}
-      <div className="absolute inset-x-0 top-8 z-50 px-12 pointer-events-none">
-        <div className="pointer-events-auto">
-          <AskChronosBar 
-            onQueryChange={setNlQuery} 
-            isProcessing={isAiFiltering} 
-            nlSummary={nlSummary} 
+    <div className="relative h-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-primary)] antialiased transition-colors duration-300">
+      <div className={`mx-auto flex h-full max-w-[1680px] flex-col gap-4 transition-all duration-300 ${shellPaddingClass} ${nlQuery ? "opacity-95 contrast-110 saturate-75" : ""}`}>
+        {runtimePlatform === "darwin" ? (
+          <div className="titlebar-drag-region h-11 shrink-0" aria-hidden="true" />
+        ) : null}
+
+        <div className="shrink-0 px-12">
+          <AskChronosBar
+            onQueryChange={setNlQuery}
+            isProcessing={isAiFiltering}
+            nlSummary={nlSummary}
           />
         </div>
-      </div>
 
-      {runtimePlatform === "darwin" ? (
-        <div className="titlebar-drag-region absolute inset-x-0 top-0 h-11 z-[60]" aria-hidden="true" />
-      ) : null}
-      
-      {/* Main app content with dimming when a query is active */}
-      <div className={`mx-auto flex h-full max-w-[1680px] flex-col gap-4 transition-all duration-500 ${shellPaddingClass} ${nlQuery ? "opacity-95 contrast-125 saturate-50" : ""}`}>
-        <header className="glass-panel-strong relative mt-20 h-[88px] overflow-hidden rounded-3xl px-6">
+        <header className="glass-panel-strong relative h-[92px] overflow-hidden rounded-2xl px-6" data-testid="workspace-header">
           <div className="flex h-full items-center justify-between gap-4">
             <div className="min-w-0 pr-4 flex items-center gap-4">
               <PulseOrb state={orbState} />
               <div>
-                <p className="font-display text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Chronos Local AI</p>
-                <p className="mt-1.5 truncate font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)]">{runtimeLabel}</p>
+                <p className={microLabelClass}>Chronos Local AI</p>
+                <p className="mt-1.5 truncate font-mono text-[12px] tracking-[0.08em] text-[var(--text-secondary)]">{runtimeLabel}</p>
               </div>
             </div>
 
             <div className="grid w-[min(940px,100%)] grid-cols-4 gap-3 border-l border-[var(--glass-border)] pl-5">
-              <div className="glass-panel group relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:bg-[var(--bg-raised)] hover:-translate-y-0.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Coverage</p>
-                <p className="mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--text-primary)]" style={{ letterSpacing: "-0.04em" }} data-testid="status-coverage">
+              <div className="glass-panel group relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-200 hover:bg-[var(--surface-glass-hover)]">
+                <p className={microLabelClass}>Coverage</p>
+                <p className="mt-2 font-display text-[30px] font-semibold tracking-tight tabular-nums text-[var(--text-primary)]" style={{ letterSpacing: "-0.04em" }} data-testid="status-coverage">
                   {Math.round(state.metrics.coverage * 100)}%
                 </p>
               </div>
 
-              <div className="glass-panel group relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:bg-[var(--bg-raised)] hover:-translate-y-0.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Needs Attention</p>
-                <p className={`mt-2 font-display text-3xl font-medium tracking-tight tabular-nums ${state.metrics.unresolvedCount > 0 ? "text-[var(--category-pink-red)]" : "text-[var(--text-primary)]"}`} style={{ letterSpacing: "-0.04em" }} data-testid="status-unresolved">
+              <div className="glass-panel group relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-200 hover:bg-[var(--surface-glass-hover)]">
+                <p className={microLabelClass}>Needs Attention</p>
+                <p className={`mt-2 font-display text-[30px] font-semibold tracking-tight tabular-nums ${state.metrics.unresolvedCount > 0 ? "text-[var(--category-financial)]" : "text-[var(--text-primary)]"}`} style={{ letterSpacing: "-0.04em" }} data-testid="status-unresolved">
                   {state.metrics.unresolvedCount}
                 </p>
               </div>
 
               <div
-                className="glass-panel group time-fluid-fill relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:-translate-y-0.5"
+                className="glass-panel group time-fluid-fill relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-200"
                 style={{ "--fill-pct": Math.min(state.metrics.trackedHours / state.metrics.targetHours, 1) } as React.CSSProperties}
               >
                 <div className="relative z-10 flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Tracked vs Target</p>
+                  <p className={microLabelClass}>Tracked vs Target</p>
                 </div>
-                <p className="relative z-10 mt-2 font-display text-3xl font-medium tracking-tight tabular-nums text-[var(--accent-slate-700)]" style={{ letterSpacing: "-0.04em" }}>
+                <p className="relative z-10 mt-2 font-mono text-[30px] font-semibold tracking-tight tabular-nums text-[var(--text-primary)]" style={{ letterSpacing: "-0.04em" }}>
                   {formatHours(state.metrics.trackedHours)}
-                  <span className="mx-1.5 text-xl font-normal text-[var(--text-muted)]/50" style={{ letterSpacing: "normal" }}>/</span>
-                  <span className="text-xl font-normal text-[var(--text-muted)]">{formatHours(state.metrics.targetHours)}</span>
+                  <span className="mx-1.5 text-[20px] font-normal text-[var(--text-muted)]/50" style={{ letterSpacing: "normal" }}>/</span>
+                  <span className="text-[20px] font-normal text-[var(--text-muted)]">{formatHours(state.metrics.targetHours)}</span>
                 </p>
               </div>
 
-              <div className="glass-panel group relative overflow-hidden rounded-2xl px-4 py-3.5 transition-all hover:bg-[var(--bg-raised)] hover:-translate-y-0.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Submission State</p>
+              <div className="glass-panel group relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-200 hover:bg-[var(--surface-glass-hover)]">
+                <p className={microLabelClass}>Submission State</p>
                 <div className="mt-2 flex items-center gap-2.5">
-                  <div className={`h-2.5 w-2.5 rounded-full ${state.metrics.submitReady ? "bg-[var(--accent-slate-500)] shadow-[0_0_12px_var(--accent-slate-500)] animate-pulse" : "bg-[var(--text-muted)]/30"}`} />
-                  {state.metrics.submitReady ? (
-                    <button 
-                      onClick={() => setIsDailySyncOpen(true)}
-                      className="font-display text-3xl font-medium tracking-tight text-[var(--accent-slate-700)] transition-colors hover:text-white"
-                    >
-                      Sync Ready
-                    </button>
-                  ) : (
-                    <p className="font-display text-3xl font-medium tracking-tight text-[var(--text-secondary)]">
-                      In Review
-                    </p>
-                  )}
+                  <div className={`h-2.5 w-2.5 rounded-full ${state.metrics.submitReady ? "bg-[var(--category-success)] shadow-[0_0_10px_rgba(52,199,89,0.35)] animate-pulse" : "bg-[var(--category-summary)] shadow-[0_0_8px_rgba(255,159,10,0.22)]"}`} />
+                  <AnimatePresence mode="wait" initial={false}>
+                    {state.metrics.submitReady ? (
+                      <motion.button
+                        key="submit-ready"
+                        initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
+                        transition={contentTransition}
+                        onClick={() => setIsDailySyncOpen(true)}
+                        className="font-display text-[30px] font-semibold tracking-tight text-[var(--category-success)] transition-colors duration-200 hover:text-[var(--text-primary)]"
+                      >
+                        Sync Ready
+                      </motion.button>
+                    ) : (
+                      <motion.p
+                        key="submit-review"
+                        initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
+                        transition={contentTransition}
+                        className="font-display text-[30px] font-semibold tracking-tight text-[var(--text-secondary)]"
+                      >
+                        In Review
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.p
+                    key={state.metrics.submitReady ? "submit-ready-copy" : `submit-review-copy-${state.metrics.unresolvedCount}`}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={prefersReducedMotion ? undefined : { opacity: 0, y: -3 }}
+                    transition={contentTransition}
+                    className="mt-1.5 text-[12px] leading-5 font-ui text-[var(--text-secondary)]"
+                  >
+                    {state.metrics.submitReady
+                      ? "Everything is resolved and ready for export."
+                      : `${state.metrics.unresolvedCount} session${state.metrics.unresolvedCount === 1 ? "" : "s"} still need review.`}
+                  </motion.p>
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </header>
 
         <div className="grid min-h-0 flex-1 grid-cols-[80px_minmax(0,1fr)_320px] gap-4">
-          <section className="glass-panel min-h-0 overflow-visible rounded-2xl p-2">
+          <section className="glass-panel min-h-0 overflow-visible rounded-2xl p-2" data-testid="session-timeline-panel">
              <ConfidenceTimeline sessions={currentPage.sessions} onAssignProject={handleAssignProject} />
           </section>
 
           <section className="min-h-0 flex flex-col gap-4">
             <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.75fr)_340px] gap-4">
-              <div className="glass-panel flex min-h-0 flex-col rounded-2xl p-4">
+              <div className="glass-panel-inner flex min-h-0 flex-col rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-3 px-2 pt-1">
                   <div>
                     <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Session Matrix</h1>
-                    <p className="text-sm mt-1 text-[var(--text-secondary)]">Captured work sessions, composed for one-glance review.</p>
+                    <p className={`${helperTextClass} mt-1`}>Captured work sessions, composed for one-glance review.</p>
                   </div>
                   <div className="flex items-center gap-2" data-testid="matrix-pagination">
                     <button
                       type="button"
                       onClick={() => setActivePageIndex((previous) => Math.max(0, previous - 1))}
-                      className={`rounded-md border px-2 py-1 text-xs disabled:opacity-50 ${neutralControl}`}
+                      className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${neutralControl}`}
                       disabled={currentPage.index <= 0}
                     >
                       Prev
@@ -541,7 +619,7 @@ export default function TimeReportingWorkspace({
                           type="button"
                           data-testid={`matrix-page-${page.index}`}
                           onClick={() => setActivePageIndex(page.index)}
-                          className={`h-5 min-w-5 rounded-full border px-1.5 text-[11px] ${
+                          className={`h-6 min-w-6 rounded-full border px-1.5 text-[11px] font-medium ${
                             page.index === currentPage.index
                               ? `${interactiveStateClasses.active} ${interactiveStateClasses.focus}`
                               : neutralControl
@@ -562,140 +640,209 @@ export default function TimeReportingWorkspace({
                   </div>
                 </div>
 
-                <div className={`mt-3 grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2 ${focusedSessionId ? "matrix-grid-spotlight" : ""}`} data-testid="matrix-grid">
+                <div className={`mt-4 grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-3 ${focusedSessionId ? "matrix-grid-spotlight" : ""}`} data-testid="matrix-grid">
                   {matrixSlots.map((slot) => {
                     if (!slot.session) {
                       return (
                         <div
                           key={slot.id}
-                          className="rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--glass-surface)]"
+                          className="rounded-xl border border-dashed border-[var(--border-soft)] bg-[rgba(255,255,255,0.02)]"
                           aria-hidden="true"
                         />
                       );
                     }
 
                     return (
-                      <button
+                      <motion.button
+                        layout={!prefersReducedMotion}
                         key={slot.id}
                         type="button"
                         data-testid={`matrix-slot-${slot.session.id}`}
                         onClick={() => activateSession(slot.session!.id)}
-                        className={`matrix-slot flex h-full flex-col items-start justify-between rounded-xl px-4 py-3.5 text-left border-0 ${interactiveStateClasses.focus} ${
+                        whileHover={
+                          prefersReducedMotion || slot.isFocused
+                            ? undefined
+                            : { scale: 1.01, transition: { duration: 0.16 } }
+                        }
+                        whileTap={prefersReducedMotion ? undefined : { scale: 0.992 }}
+                        transition={surfaceTransition}
+                        className={`matrix-slot relative overflow-hidden flex h-full flex-col items-start justify-between rounded-xl px-4 py-4 text-left border-0 transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] ${
                           slot.isFocused
-                            ? `matrix-slot--focused bg-[var(--glass-surface-strong)] ring-2 ring-[var(--accent-slate-500)] ring-offset-2 ring-offset-[var(--bg-canvas)] shadow-[var(--glass-shadow-soft)]`
-                            : `bg-[var(--glass-surface)] ring-1 ring-[var(--glass-border)]`
+                            ? `matrix-slot--focused bg-[var(--surface-glass-strong)] shadow-[var(--glass-shadow-soft)] before:absolute before:inset-0 before:ring-1 before:ring-inset before:ring-[var(--border-active)] before:rounded-xl`
+                            : `bg-[var(--surface-subtle)] hover:bg-[var(--surface-glass-hover)] ring-1 ring-inset ring-[var(--border-subtle)]`
                         }`}
                       >
-                        <div className="flex w-full items-start justify-between gap-3">
+                        {/* Dynamic edge bleed on hover (semantic colors) */}
+                        <div className="absolute top-0 left-0 h-full w-[2px] bg-gradient-to-b from-transparent via-[var(--border-active)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        
+                        <div className="flex w-full items-start justify-between gap-3 relative z-10">
                           <div className="min-w-0">
-                            <p className="text-[15px] font-semibold tracking-tight leading-snug text-[var(--text-primary)]">{slot.session.summary}</p>
+                            <p className="font-ui text-[15px] font-semibold tracking-tight leading-6 text-[var(--text-primary)]">{slot.session.summary}</p>
                             {(() => {
                               const pc = getProjectColor(slot.session.project);
                               return (
                                 <span 
-                                  className="mt-1.5 inline-block rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ring-1"
-                                  style={{
-                                    backgroundColor: pc.bgLight,
-                                    color: pc.textDark,
-                                    borderColor: pc.ring,
-                                  }}
+                                  className="mt-2 inline-block rounded-md bg-[var(--surface-subtle)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--text-secondary)] ring-1 ring-inset ring-[var(--border-subtle)]"
                                 >
                                   {slot.session.project ?? "Unassigned"}
                                 </span>
                               );
                             })()}
                           </div>
-                          <span className="shrink-0 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1 font-mono text-xs font-medium tabular-nums text-[var(--accent-slate-700)]">
+                          <span className="shrink-0 rounded-md bg-[var(--surface-subtle)] px-2 py-1 font-mono text-[12px] font-medium tabular-nums text-[var(--text-primary)] ring-1 ring-inset ring-[var(--border-subtle)]">
                             {formatHours(slot.session.durationMinutes / 60)}
                           </span>
                         </div>
-                        <div className="mt-auto pt-4 w-full text-xs text-[var(--text-secondary)] flex items-center justify-between">
-                          <p className="rounded bg-[var(--glass-surface)] px-2 py-0.5 text-[11px] font-medium">{reviewStateLabel[slot.session.reviewState]}</p>
-                          <p className="font-mono tabular-nums text-[var(--text-muted)]">{formatWindow(slot.session.startedAt, slot.session.endedAt)}</p>
+                        <div className="mt-auto flex w-full items-center justify-between pt-5 text-xs text-[var(--text-secondary)] relative z-10">
+                          <p className={`rounded-md border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.05em] ${reviewStateClass[slot.session.reviewState]}`}>
+                            {reviewStateLabel[slot.session.reviewState]}
+                          </p>
+                          <p className="font-mono text-[11px] tabular-nums text-[var(--text-muted)]">{formatWindow(slot.session.startedAt, slot.session.endedAt)}</p>
                         </div>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
               </div>
 
-              <aside className="glass-panel min-h-0 rounded-2xl p-5" data-testid="matrix-focus-panel">
+              <aside className="glass-panel-strong min-h-0 rounded-2xl p-6 relative overflow-hidden" data-testid="matrix-focus-panel">
+                <div className="absolute top-0 left-1/2 w-32 h-[1px] bg-[var(--category-formal)] opacity-60 -translate-x-1/2 blur-[1px]" />
                 {focusedSession ? (
-                  <div className="flex h-full flex-col">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Focused Session</p>
-                    <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight leading-tight text-[var(--text-primary)]">{focusedSession.summary}</h2>
-                    <div className="mt-3 flex">
-                      {(() => {
-                        const pc = getProjectColor(focusedSession.project);
-                        return (
-                          <span 
-                            className="inline-block rounded-full border px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider"
-                            style={{
-                              backgroundColor: pc.bgLight,
-                              color: pc.textDark,
-                              borderColor: pc.ring,
-                            }}
+                  <motion.div
+                    layout={!prefersReducedMotion}
+                    initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex h-full flex-col relative z-10"
+                  >
+                      <p className={microLabelClass}>Focused Session</p>
+                      <h2 className="mt-4 font-ui text-2xl font-semibold tracking-tight leading-snug text-[var(--text-primary)]">{focusedSession.summary}</h2>
+                      <motion.div layout={!prefersReducedMotion} className="mt-4 flex flex-wrap gap-2">
+                        {(() => {
+                          const pc = getProjectColor(focusedSession.project);
+                          return (
+                            <span 
+                              className="inline-block rounded-md bg-[var(--surface-subtle)] px-2 py-1 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--text-secondary)] ring-1 ring-inset ring-[var(--border-subtle)]"
+                            >
+                              {focusedSession.project ?? "Project assignment needed"}
+                            </span>
+                          );
+                        })()}
+                        <span className={`inline-flex items-center rounded-md border px-2 py-1 font-mono uppercase tracking-[0.05em] text-[10px] font-semibold ${reviewStateClass[focusedSession.reviewState]}`}>
+                          {reviewStateLabel[focusedSession.reviewState]}
+                        </span>
+                        <span className={`inline-flex items-center rounded-md border px-2 py-1 font-mono uppercase tracking-[0.05em] text-[10px] font-semibold ${getConfidenceClass(focusedSession.confidence)}`}>
+                          {Math.round(focusedSession.confidence * 100)}% confidence
+                        </span>
+                      </motion.div>
+                      <p className="mt-5 inline-block self-start rounded-md border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-1.5 font-mono text-[12px] font-medium tabular-nums text-[var(--text-primary)]">
+                        {formatWindow(focusedSession.startedAt, focusedSession.endedAt)} · <span className="opacity-50">{formatHours(focusedSession.durationMinutes / 60)}</span>
+                      </p>
+                      <AnimatePresence mode="wait" initial={false}>
+                        {focusedIssue ? (
+                          <motion.div
+                            key={`focused-issue-${focusedIssue.id}`}
+                            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+                            transition={contentTransition}
+                            className="mt-4 rounded-xl border border-[var(--glass-border)] bg-[rgba(255,255,255,0.025)] px-3.5 py-3"
                           >
-                            {focusedSession.project ?? "Project assignment needed"}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <p className="mt-3 inline-block self-start rounded-md border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1 font-mono text-sm font-medium tabular-nums text-[var(--accent-slate-700)]">
-                      {formatWindow(focusedSession.startedAt, focusedSession.endedAt)} · <span className="opacity-70">{formatHours(focusedSession.durationMinutes / 60)}</span>
-                    </p>
-                    <p className="mt-8 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)] border-b border-[var(--border-soft)] pb-2 mb-3">Signals</p>
-                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                      {focusedSession.signals.slice(0, 3).join(" · ") || "No high-signal hints"}
-                    </p>
+                            <div className="flex items-center justify-between gap-3">
+                              <p className={microLabelClass}>Review Signal</p>
+                              <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${reviewPriorityClass[focusedIssue.priority]}`}>
+                                {reviewPriorityLabel[focusedIssue.priority]}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-[13px] leading-5 text-[var(--text-primary)]">{focusedIssue.hint}</p>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="focused-clear"
+                            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+                            transition={contentTransition}
+                            className="mt-4 rounded-xl border border-[var(--category-success)]/30 bg-[var(--category-success)]/10 px-3.5 py-3"
+                          >
+                            <p className={microLabelClass}>Review Signal</p>
+                            <p className="mt-2 text-[13px] font-ui leading-5 text-[var(--category-success)]">This session is clear enough to ship without more review.</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <p className={`mt-8 mb-3 border-b border-[var(--border-subtle)] pb-2 ${microLabelClass}`}>Signals</p>
+                      <p className={`${helperTextClass} font-mono text-[12px]`}>
+                        {focusedSession.signals.slice(0, 3).join(" · ") || "No high-signal hints"}
+                      </p>
 
-                    <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                      <button
-                        type="button"
-                        onClick={() => dispatch({ type: "open_drawer", sessionId: focusedSession.id })}
-                        className={`rounded-md border px-3 py-1.5 text-sm ${neutralControl}`}
-                      >
-                        Open details
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => dispatch({ type: "resolve_session", sessionId: focusedSession.id })}
-                        className={`rounded-md border px-3 py-1.5 text-sm ${interactiveStateClasses.active} ${interactiveStateClasses.focus}`}
-                      >
-                        Mark resolved
-                      </button>
-                    </div>
-                  </div>
+                      <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => dispatch({ type: "open_drawer", sessionId: focusedSession.id })}
+                          className={`rounded-xl border px-3.5 py-2 text-sm font-ui font-medium ${neutralControl}`}
+                        >
+                          Open details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => dispatch({ type: "resolve_session", sessionId: focusedSession.id })}
+                          className={`rounded-xl border px-3.5 py-2 text-sm font-ui font-medium ${interactiveStateClasses.active} ${interactiveStateClasses.focus}`}
+                        >
+                          Mark resolved
+                        </button>
+                      </div>
+                  </motion.div>
                 ) : (
-                  <div className="glass-panel flex h-full w-full flex-col items-center justify-center rounded-xl border-dashed p-6 text-center">
+                  <motion.div
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={contentTransition}
+                    className="glass-panel-inner flex h-full w-full flex-col items-center justify-center rounded-xl border-dashed p-6 text-center"
+                  >
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)]">
                       <svg className="h-5 w-5 text-[var(--accent-slate-500)] opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">No session selected</h3>
-                    <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                    <h3 className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">No session selected</h3>
+                    <p className="mt-2 max-w-[240px] text-[13px] leading-6 text-[var(--text-secondary)]">
                       Select a session from the matrix to view detailed tracking insights, AI rationale, and application switching events.
                     </p>
-                  </div>
+                  </motion.div>
                 )}
               </aside>
             </div>
           </section>
 
-          <aside className="glass-panel-strong flex flex-col rounded-3xl p-5">
+          <aside className="glass-panel-strong flex flex-col rounded-2xl p-5">
             <div className="mb-4 border-b border-[var(--glass-border)] pb-4">
-              <h3 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Review Queue</h3>
-              <p className="mt-1.5 align-middle text-sm text-[var(--text-secondary)]">Use <kbd className="mx-0.5 rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono text-xs">↑`/`↓</kbd> to navigate, <kbd className="mx-0.5 rounded border border-[var(--glass-border)] bg-[var(--glass-surface)] px-1 py-0.5 font-mono text-xs">Enter</kbd> to detail.</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Review Queue</h3>
+                  <p className="mt-1.5 align-middle text-[13px] leading-5 text-[var(--text-secondary)]">Use <kbd className="mx-0.5 rounded border border-[var(--glass-border)] bg-[rgba(255,255,255,0.03)] px-1.5 py-0.5 font-mono text-[11px]">↑`/`↓</kbd> to navigate, <kbd className="mx-0.5 rounded border border-[var(--glass-border)] bg-[rgba(255,255,255,0.03)] px-1.5 py-0.5 font-mono text-[11px]">Enter</kbd> to detail.</p>
+                </div>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${state.metrics.submitReady ? "border-[var(--state-success-border)] bg-[var(--state-success-bg)] text-[var(--state-success-text)]" : "border-[var(--state-warning-border)] bg-[var(--state-warning-bg)] text-[var(--state-warning-text)]"}`}>
+                  {state.metrics.submitReady ? "Ready" : `${state.metrics.unresolvedCount} open`}
+                </span>
+              </div>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
+                <motion.div
+                  className={`h-full rounded-full transition-all duration-300 ${state.metrics.submitReady ? "bg-[var(--category-green)]" : "bg-[var(--accent-slate-500)]"}`}
+                  animate={{ width: `${Math.max(queueProgress * 100, state.metrics.totalSessions === 0 ? 100 : 8)}%` }}
+                  transition={surfaceTransition}
+                />
+              </div>
             </div>
 
-            <ul className="mt-2 space-y-2" data-testid="review-list">
+            <motion.ul layout={!prefersReducedMotion} className="mt-2 space-y-2" data-testid="review-list">
               {reviewSummary.items.map((item) => {
                 const isSelected = item.id === state.selectedIssueId;
+                const issue = state.reviewQueue.find((queuedIssue) => queuedIssue.id === item.id) ?? null;
 
                 return (
-                  <li key={item.id}>
-                    <button
+                  <motion.li key={item.id} transition={surfaceTransition}>
+                    <motion.button
+                      layout={!prefersReducedMotion}
                       type="button"
                       data-testid={`review-item-${item.id}`}
                       onClick={() => {
@@ -703,31 +850,46 @@ export default function TimeReportingWorkspace({
                         setFocusedSessionId(item.sessionId);
                         dispatch({ type: "open_drawer", sessionId: item.sessionId });
                       }}
-                      className={`w-full rounded-xl px-3 py-2.5 text-left border-0 transition-all ${interactiveStateClasses.focus} ${
+                      whileHover={prefersReducedMotion ? undefined : { x: 1 }}
+                      whileTap={prefersReducedMotion ? undefined : { scale: 0.995 }}
+                      transition={surfaceTransition}
+                      className={`w-full rounded-xl px-3.5 py-3 text-left border-0 transition-all duration-200 ${interactiveStateClasses.focus} ${
                         isSelected
-                          ? `bg-[var(--glass-surface-strong)] shadow-[var(--glass-shadow-soft)] ring-1 ring-[var(--accent-slate-500)]`
-                          : `bg-[var(--glass-surface)] ring-1 ring-[var(--glass-border)] hover:-translate-y-px hover:bg-[var(--bg-raised)]`
+                          ? `bg-[var(--glass-surface-strong)] shadow-[var(--glass-shadow-soft)] ring-1 ${issue ? reviewPriorityRingClass[issue.priority] : "ring-[var(--accent-slate-500)]"}`
+                          : `bg-[var(--glass-surface)] ring-1 ring-[var(--glass-border)] hover:bg-[rgba(255,255,255,0.06)]`
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-[var(--glass-border)] ${reviewMarkerClass[item.priority]}`} aria-hidden="true" />
                         <div className="min-w-0">
-                          <p className="text-[14px] font-semibold tracking-tight leading-tight text-[var(--text-primary)]">{item.title}</p>
-                          <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)] opacity-90">{item.hint}</p>
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-[14px] font-semibold tracking-tight leading-5 text-[var(--text-primary)]">{item.title}</p>
+                            {issue ? (
+                              <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${reviewPriorityClass[issue.priority]}`}>
+                                {reviewPriorityLabel[issue.priority]}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)] opacity-90">{item.hint}</p>
+                          {issue ? (
+                            <p className="mt-2 font-mono text-[11px] tabular-nums text-[var(--text-muted)]">
+                              {Math.round(issue.confidence * 100)}% confidence
+                            </p>
+                          ) : null}
                         </div>
                       </div>
-                    </button>
-                  </li>
+                    </motion.button>
+                  </motion.li>
                 );
               })}
-            </ul>
+            </motion.ul>
 
             {reviewSummary.overflowCount > 0 ? (
-              <p className="mt-3 text-xs text-[var(--text-muted)]">+{reviewSummary.overflowCount} additional review items</p>
+              <p className="mt-3 text-[12px] text-[var(--text-muted)]">+{reviewSummary.overflowCount} additional review items</p>
             ) : null}
 
             {reviewSummary.total === 0 ? (
-              <p className={`mt-3 rounded-md border px-3 py-2 text-xs ${interactiveStateClasses.info}`}>
+              <p className={`mt-3 rounded-xl border px-3 py-2.5 text-[12px] ${interactiveStateClasses.info}`}>
                 All sessions are now ready for submission.
               </p>
             ) : null}
@@ -741,51 +903,55 @@ export default function TimeReportingWorkspace({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="fixed inset-y-0 right-0 z-30 w-[460px] border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)] p-6 shadow-[-16px_0_48px_rgba(3,4,14,0.5)] backdrop-blur-3xl"
+        transition={drawerTransition}
+        data-testid="session-drawer"
+        className="fixed inset-y-0 right-0 z-30 w-[460px] border-l border-[var(--glass-border)] bg-[var(--glass-surface-strong)] p-6 shadow-[-16px_0_40px_rgba(3,4,14,0.34)] backdrop-blur-3xl"
       >
         {drawerSession ? (
           <div className="flex h-full flex-col">
             <div className="mb-6 flex items-start justify-between border-b border-[var(--border-soft)] pb-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Session Review</p>
+                <p className={microLabelClass}>Session Review</p>
                 <h3 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] leading-none" data-testid="drawer-session-title">
                   {drawerSession.summary}
                 </h3>
-                <p className="mt-3 w-max rounded-md border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1 font-mono text-xs tabular-nums text-[var(--accent-slate-700)]">{formatWindow(drawerSession.startedAt, drawerSession.endedAt)} · <span className="opacity-70">{formatHours(drawerSession.durationMinutes / 60)}</span></p>
+                <p className="mt-3 w-max rounded-lg border border-[var(--glass-border)] bg-[rgba(255,255,255,0.03)] px-3 py-1.5 font-mono text-[12px] tabular-nums text-[var(--accent-slate-700)]">{formatWindow(drawerSession.startedAt, drawerSession.endedAt)} · <span className="opacity-70">{formatHours(drawerSession.durationMinutes / 60)}</span></p>
               </div>
               <button
                 type="button"
                 onClick={() => dispatch({ type: "close_drawer" })}
-                className={`rounded-md border px-2 py-1 text-xs ${neutralControl}`}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium ${neutralControl}`}
               >
-                Esc
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="sr-only">Close</span>
               </button>
             </div>
 
-            <div className="space-y-3 overflow-y-auto pr-1">
+            <div className="space-y-4 overflow-y-auto pr-1">
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Project</span>
+                <span className={`mb-2 block ${microLabelClass}`}>Project</span>
                 <input
                   value={draftProject}
                   onChange={(event) => setDraftProject(event.target.value)}
                   placeholder="Assign project"
-                  className="drawer-input w-full rounded-md px-3 py-2 text-sm text-[var(--text-primary)]"
+                  className="drawer-input w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Session summary</span>
+                <span className={`mb-2 block ${microLabelClass}`}>Session summary</span>
                 <textarea
                   value={draftSummary}
                   onChange={(event) => setDraftSummary(event.target.value)}
                   rows={4}
-                  className="drawer-input w-full rounded-md px-3 py-2 text-sm text-[var(--text-primary)]"
+                  className="drawer-input w-full rounded-xl px-3 py-2.5 text-sm leading-6 text-[var(--text-primary)]"
                 />
               </label>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Confidence override</label>
+                <label className={`mb-2 block ${microLabelClass}`}>Confidence override</label>
                 <input
                   type="range"
                   min="0"
@@ -793,17 +959,17 @@ export default function TimeReportingWorkspace({
                   step="0.01"
                   value={draftConfidence}
                   onChange={(event) => setDraftConfidence(Number(event.target.value))}
-                  className="w-full accent-[var(--accent-aurora-end)]"
+                  className="drawer-range"
                 />
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">{Math.round(draftConfidence * 100)}% confidence</p>
+                <p className="mt-2 text-[13px] text-[var(--text-secondary)]">{Math.round(draftConfidence * 100)}% confidence</p>
               </div>
 
-              <label className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <label className="inline-flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
                 <input
                   type="checkbox"
                   checked={draftBillable}
                   onChange={(event) => setDraftBillable(event.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-raised)]"
+                  className="drawer-checkbox"
                 />
                 Billable work
               </label>
@@ -812,14 +978,14 @@ export default function TimeReportingWorkspace({
                 <button
                   type="button"
                   onClick={applyDraftChanges}
-                  className={`aurora-cta rounded-md border px-3 py-2 text-sm ${interactiveStateClasses.focus}`}
+                  className={`rounded-xl border px-3.5 py-2 text-sm font-medium ${neutralControl}`}
                 >
                   Apply edits
                 </button>
                 <button
                   type="button"
                   onClick={requestExplanation}
-                  className={`rounded-md border px-3 py-2 text-sm ${neutralControl}`}
+                  className={`rounded-xl border px-3.5 py-2 text-sm font-medium ${neutralControl}`}
                   disabled={aiLoadingSessionId === drawerSession.id}
                 >
                   {aiLoadingSessionId === drawerSession.id ? "Asking AI..." : "Explain with AI"}
@@ -827,14 +993,14 @@ export default function TimeReportingWorkspace({
                 <button
                   type="button"
                   onClick={() => dispatch({ type: "resolve_session", sessionId: drawerSession.id })}
-                  className={`aurora-cta rounded-md border px-3 py-2 text-sm ${interactiveStateClasses.focus}`}
+                  className={`aurora-cta rounded-xl border px-4 py-2.5 text-sm font-semibold ${interactiveStateClasses.focus}`}
                 >
                   Resolve session
                 </button>
               </div>
 
               {aiError ? (
-                <p className={`rounded-md border px-3 py-2 text-xs ${interactiveStateClasses.critical}`}>{aiError}</p>
+                <p className={`rounded-xl border px-3 py-2.5 text-[12px] ${interactiveStateClasses.critical}`}>{aiError}</p>
               ) : null}
 
               {drawerExplanation ? (
@@ -842,16 +1008,16 @@ export default function TimeReportingWorkspace({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`rounded-lg border px-3 py-3 ${interactiveStateClasses.info}`}
+                  className={`rounded-xl border px-3.5 py-3.5 ${interactiveStateClasses.info}`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[#9FEAF2]">AI rationale</p>
-                  <p className="mt-2 text-sm text-[#BFEFF5]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--category-cyan)]">AI rationale</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-primary)]">
                     <Typewriter text={drawerExplanation.rationale} speed={18} />
                   </p>
-                  <p className="mt-2 text-xs tabular-nums text-[#9FEAF2]">
+                  <p className="mt-3 text-[12px] tabular-nums text-[var(--text-secondary)]">
                     Confidence: {Math.round(drawerExplanation.confidence * 100)}%
                   </p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[#9FEAF2]">
+                  <ul className="mt-3 list-disc space-y-1.5 pl-4 text-[12px] leading-5 text-[var(--text-secondary)]">
                     {drawerExplanation.factors.map((factor) => (
                       <li key={factor}>{factor}</li>
                     ))}
